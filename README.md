@@ -23,9 +23,9 @@ Generated output:
 ```
 CLAUDE.md               → .oneagent/instructions.md
 AGENTS.md               → .oneagent/instructions.md
-.windsurfrules          → .oneagent/instructions.md
 .claude/rules/          → .oneagent/rules/* (symlinks)
 .cursor/rules/          → .oneagent/rules/* (symlinks)
+.windsurf/rules/        → .oneagent/rules/* (symlinks)
 .github/instructions/   → generated with Copilot frontmatter
 opencode.json           → updated with instructions path
 ```
@@ -52,19 +52,14 @@ oneagent status     # verify everything is in order
 
 ## Rules
 
-Rules live in `.oneagent/rules/` as plain Markdown files. Use optional frontmatter to scope a rule to specific files:
+Rules live in `.oneagent/rules/` as plain Markdown files:
 
 ```md
----
-applyTo: "**/*.ts"
----
 # TypeScript
 
 - No `any` types
 - Always annotate return types
 ```
-
-Without frontmatter, the rule applies to all files (`**`).
 
 ## Supported agents
 
