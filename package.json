@@ -1,0 +1,18 @@
+{
+  "name": "dotai",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "examples/*"],
+  "scripts": {
+    "build": "bun run --filter='*' build",
+    "test": "bun test --filter='*'",
+    "typecheck": "bun run --filter='*' typecheck",
+    "example:generate": "bun run --filter='@dotai/example-basic' generate",
+    "example:status": "bun run --filter='@dotai/example-basic' status",
+    "example:clear": "bun run --filter='@dotai/example-basic' clear"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}
