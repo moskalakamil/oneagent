@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs/promises";
-import type { AgentTarget, RuleFile, SymlinkCheck, SymlinkEntry } from "./types.ts";
+import type { AgentTarget, RuleFile, SkillFile, SymlinkCheck, SymlinkEntry } from "./types.ts";
 
 export async function ensureDir(dirPath: string): Promise<void> {
   await fs.mkdir(dirPath, { recursive: true });
@@ -96,6 +96,20 @@ export function buildRulesSymlinks(
   }
 
   return entries;
+}
+
+export function buildSkillSymlinks(root: string, targets: AgentTarget[], skills: SkillFile[]): SymlinkEntry[] {
+  if (!targets.includes("claude")) return [];
+
+  const commandsDir = path.join(root, ".claude/commands");
+  return skills.map((skill) => {
+    const symlinkPath = path.join(commandsDir, `${skill.name}.md`);
+    return {
+      symlinkPath,
+      target: relativeTarget(symlinkPath, skill.path),
+      label: path.relative(root, symlinkPath),
+    };
+  });
 }
 
 export async function createAllSymlinks(entries: SymlinkEntry[]): Promise<void> {

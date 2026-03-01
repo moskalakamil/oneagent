@@ -2,8 +2,8 @@ import { test, expect, describe } from "bun:test";
 import { mkdtemp, lstat } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createSymlink, buildMainSymlinks, buildRulesSymlinks, checkSymlink } from "../symlinks.ts";
-import type { RuleFile } from "../types.ts";
+import { createSymlink, buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, checkSymlink } from "../symlinks.ts";
+import type { RuleFile, SkillFile } from "../types.ts";
 
 async function mkTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "dotai-test-"));
@@ -74,6 +74,34 @@ describe("buildRulesSymlinks", () => {
   test("skips copilot and opencode (handled separately)", () => {
     const entries = buildRulesSymlinks("/root", ["copilot", "opencode"], rules);
     expect(entries.length).toBe(0);
+  });
+});
+
+describe("buildSkillSymlinks", () => {
+  const skills: SkillFile[] = [
+    { name: "review", path: "/root/.oneagent/skills/review.md", description: "Review code", mode: "ask", content: "" },
+  ];
+
+  test("creates .claude/commands/ entries for claude target", () => {
+    const entries = buildSkillSymlinks("/root", ["claude"], skills);
+    expect(entries.some((e) => e.symlinkPath.includes(".claude/commands/review.md"))).toBe(true);
+  });
+
+  test("returns empty array when claude is not a target", () => {
+    const entries = buildSkillSymlinks("/root", ["cursor", "copilot"], skills);
+    expect(entries.length).toBe(0);
+  });
+
+  test("returns empty array when no skills", () => {
+    const entries = buildSkillSymlinks("/root", ["claude"], []);
+    expect(entries.length).toBe(0);
+  });
+
+  test("all entries have a relative target path", () => {
+    const entries = buildSkillSymlinks("/root", ["claude"], skills);
+    for (const e of entries) {
+      expect(e.target.startsWith("/")).toBe(false);
+    }
   });
 });
 
