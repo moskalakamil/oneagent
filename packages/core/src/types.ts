@@ -20,6 +20,14 @@ export interface RuleFile {
   content: string;
 }
 
+export interface SkillFile {
+  name: string;
+  path: string;
+  description: string;
+  mode: "ask" | "edit" | "agent";
+  content: string;
+}
+
 export interface SymlinkEntry {
   symlinkPath: string;
   target: string;
