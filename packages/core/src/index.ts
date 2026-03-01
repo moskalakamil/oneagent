@@ -2,6 +2,7 @@ export * from "./types.ts";
 export * from "./config.ts";
 export * from "./detect.ts";
 export * from "./rules.ts";
+export * from "./skills.ts";
 export * from "./symlinks.ts";
 export * from "./copilot.ts";
 export * from "./opencode.ts";
