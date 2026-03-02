@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { readConfig, checkStatus } from "@moskala/oneagent-core";
+import { readConfig, checkStatus, activeTargets } from "@moskala/oneagent-core";
 
 export default defineCommand({
   meta: {
@@ -35,7 +35,7 @@ export default defineCommand({
       }
     }
 
-    if (config.targets.includes("opencode")) {
+    if (activeTargets(config).includes("opencode")) {
       const { opencode } = status;
       const icon = !opencode.exists ? "✗" : opencode.valid ? "✓" : "⚠";
       const text = !opencode.exists ? "missing" : opencode.valid ? "valid" : "invalid";
