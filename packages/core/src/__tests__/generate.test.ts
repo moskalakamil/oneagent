@@ -81,6 +81,18 @@ describe("generate", () => {
     expect(stat.isSymbolicLink()).toBe(true);
   });
 
+  test("migrates real .agents/skills dir before creating symlink", async () => {
+    const dir = await mkTempDir();
+    await setupProject(dir);
+    await mkdir(join(dir, ".agents/skills"), { recursive: true });
+    await writeFile(join(dir, ".agents/skills/review.md"), "# Review");
+    await generate(dir, makeConfig("claude"));
+    const content = await Bun.file(join(dir, ".oneagent/skills/review.md")).text();
+    expect(content).toBe("# Review");
+    const stat = await lstat(join(dir, ".agents/skills"));
+    expect(stat.isSymbolicLink()).toBe(true);
+  });
+
   test("is idempotent — running twice produces same result", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);

@@ -118,6 +118,37 @@ export function buildAgentsDirSymlinks(root: string): SymlinkEntry[] {
   return [{ symlinkPath, target: relativeTarget(symlinkPath, targetAbs), label: ".agents/skills" }];
 }
 
+export async function migrateAgentsSkillsDir(root: string): Promise<void> {
+  const src = path.join(root, ".agents/skills");
+
+  let stat;
+  try {
+    stat = await fs.lstat(src);
+  } catch {
+    return; // doesn't exist
+  }
+
+  if (stat.isSymbolicLink() || !stat.isDirectory()) return;
+
+  const dest = path.join(root, ".oneagent/skills");
+  await fs.mkdir(dest, { recursive: true });
+
+  const entries = await fs.readdir(src, { withFileTypes: true });
+  await Promise.all(
+    entries.map(async (entry) => {
+      const entryDest = path.join(dest, entry.name);
+      try {
+        await fs.access(entryDest);
+        // destination exists — skip (dest wins)
+      } catch {
+        await fs.rename(path.join(src, entry.name), entryDest);
+      }
+    }),
+  );
+
+  await fs.rm(src, { recursive: true, force: true });
+}
+
 export async function createAllSymlinks(entries: SymlinkEntry[]): Promise<void> {
   await Promise.all(entries.map((e) => createSymlink(e.symlinkPath, e.target)));
 }
