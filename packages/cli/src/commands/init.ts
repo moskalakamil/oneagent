@@ -19,6 +19,7 @@ import {
   detectExistingFiles,
   filesHaveSameContent,
   generate,
+  migrateRuleAndSkillFiles,
   type AgentTarget,
   type Config,
   type DetectedFile,
@@ -156,6 +157,7 @@ export default defineCommand({
     await fs.mkdir(path.join(root, ".oneagent/skills"), { recursive: true });
 
     await backupFiles(root, detected);
+    await migrateRuleAndSkillFiles(root);
 
     const config: Config = { version: 1, targets: makeTargets(...selectedTargets) };
     await writeConfig(root, config);

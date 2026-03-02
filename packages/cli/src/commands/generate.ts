@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import { spinner } from "@clack/prompts";
-import { readConfig, generate } from "@moskala/oneagent-core";
+import { confirm, isCancel, note, outro, spinner } from "@clack/prompts";
+import { readConfig, generate, detectGenerateCollisions, migrateRuleAndSkillFiles } from "@moskala/oneagent-core";
 
 export default defineCommand({
   meta: {
@@ -16,6 +16,22 @@ export default defineCommand({
     } catch {
       console.error("Error: No .oneagent/config.yml found. Run `oneagent init` first.");
       process.exit(1);
+    }
+
+    const collisions = await detectGenerateCollisions(root, config);
+    if (collisions.length > 0) {
+      note(
+        collisions.map((f) => `  • ${f.relativePath}`).join("\n"),
+        "These files are not dotai symlinks",
+      );
+      const proceed = await confirm({
+        message: "Move rule/skill files to .oneagent/ and replace all with symlinks?",
+      });
+      if (isCancel(proceed) || !proceed) {
+        outro("Aborted.");
+        process.exit(0);
+      }
+      await migrateRuleAndSkillFiles(root);
     }
 
     const s = spinner();

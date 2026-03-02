@@ -1,9 +1,10 @@
 import { test, expect, describe } from "bun:test";
-import { mkdtemp, mkdir, lstat, writeFile } from "fs/promises";
+import { mkdtemp, mkdir, lstat, writeFile, symlink } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { generate } from "../generate.ts";
+import { generate, detectGenerateCollisions } from "../generate.ts";
 import { makeTargets } from "../config.ts";
+import { buildCopilotContent, copilotFilePath } from "../copilot.ts";
 import type { Config } from "../types.ts";
 
 async function mkTempDir(): Promise<string> {
@@ -18,6 +19,61 @@ async function setupProject(dir: string): Promise<void> {
 function makeConfig(...targets: Parameters<typeof makeTargets>[0][]): Config {
   return { version: 1, targets: makeTargets(...targets) };
 }
+
+describe("detectGenerateCollisions", () => {
+  test("returns [] on first run — no files exist", async () => {
+    const dir = await mkTempDir();
+    await setupProject(dir);
+    const collisions = await detectGenerateCollisions(dir, makeConfig("claude"));
+    expect(collisions).toEqual([]);
+  });
+
+  test("returns [] when symlinks already point to .oneagent/ (idempotent)", async () => {
+    const dir = await mkTempDir();
+    await setupProject(dir);
+    await generate(dir, makeConfig("claude"));
+    const collisions = await detectGenerateCollisions(dir, makeConfig("claude"));
+    expect(collisions).toEqual([]);
+  });
+
+  test("detects real CLAUDE.md for claude target", async () => {
+    const dir = await mkTempDir();
+    await setupProject(dir);
+    await Bun.write(join(dir, "CLAUDE.md"), "# Real instructions");
+    const collisions = await detectGenerateCollisions(dir, makeConfig("claude"));
+    expect(collisions.some((f) => f.relativePath === "CLAUDE.md")).toBe(true);
+  });
+
+  test("detects real .cursor/rules/style.md for cursor target with a rule", async () => {
+    const dir = await mkTempDir();
+    await setupProject(dir);
+    await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
+    await mkdir(join(dir, ".cursor/rules"), { recursive: true });
+    await writeFile(join(dir, ".cursor/rules/style.md"), "# Real cursor style");
+    const collisions = await detectGenerateCollisions(dir, makeConfig("cursor"));
+    expect(collisions.some((f) => f.relativePath === ".cursor/rules/style.md")).toBe(true);
+  });
+
+  test("detects copilot rule file with different content", async () => {
+    const dir = await mkTempDir();
+    await setupProject(dir);
+    await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
+    await mkdir(join(dir, ".github/instructions"), { recursive: true });
+    await writeFile(join(dir, ".github/instructions/style.instructions.md"), "# Different content");
+    const collisions = await detectGenerateCollisions(dir, makeConfig("copilot"));
+    expect(collisions.some((f) => f.relativePath === ".github/instructions/style.instructions.md")).toBe(true);
+  });
+
+  test("does NOT detect copilot rule file with matching content (idempotent)", async () => {
+    const dir = await mkTempDir();
+    await setupProject(dir);
+    await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
+    // Generate so the copilot file has the correct content
+    await generate(dir, makeConfig("copilot"));
+    const collisions = await detectGenerateCollisions(dir, makeConfig("copilot"));
+    expect(collisions.some((f) => f.relativePath === ".github/instructions/style.instructions.md")).toBe(false);
+  });
+});
 
 describe("generate", () => {
   test("creates CLAUDE.md symlink for claude target", async () => {

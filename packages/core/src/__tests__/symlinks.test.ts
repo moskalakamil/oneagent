@@ -2,7 +2,7 @@ import { test, expect, describe } from "bun:test";
 import { mkdtemp, lstat, mkdir, writeFile, symlink, access } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createSymlink, buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildAgentsDirSymlinks, checkSymlink, migrateAgentsSkillsDir } from "../symlinks.ts";
+import { createSymlink, buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildAgentsDirSymlinks, checkSymlink, migrateRuleAndSkillFiles } from "../symlinks.ts";
 import type { RuleFile, SkillFile } from "../types.ts";
 
 async function mkTempDir(): Promise<string> {
@@ -123,11 +123,10 @@ describe("buildAgentsDirSymlinks", () => {
   });
 });
 
-describe("migrateAgentsSkillsDir", () => {
+describe("migrateRuleAndSkillFiles — .agents/skills", () => {
   test("no-op when .agents/skills does not exist", async () => {
     const dir = await mkTempDir();
-    // should not throw
-    await migrateAgentsSkillsDir(dir);
+    await migrateRuleAndSkillFiles(dir);
   });
 
   test("no-op when .agents/skills is already a symlink", async () => {
@@ -135,7 +134,7 @@ describe("migrateAgentsSkillsDir", () => {
     await mkdir(join(dir, ".agents"), { recursive: true });
     await mkdir(join(dir, ".oneagent/skills"), { recursive: true });
     await symlink(join(dir, ".oneagent/skills"), join(dir, ".agents/skills"));
-    await migrateAgentsSkillsDir(dir);
+    await migrateRuleAndSkillFiles(dir);
     const stat = await lstat(join(dir, ".agents/skills"));
     expect(stat.isSymbolicLink()).toBe(true);
   });
@@ -144,7 +143,7 @@ describe("migrateAgentsSkillsDir", () => {
     const dir = await mkTempDir();
     await mkdir(join(dir, ".agents/skills"), { recursive: true });
     await writeFile(join(dir, ".agents/skills/review.md"), "# Review");
-    await migrateAgentsSkillsDir(dir);
+    await migrateRuleAndSkillFiles(dir);
     const content = await Bun.file(join(dir, ".oneagent/skills/review.md")).text();
     expect(content).toBe("# Review");
     await expect(access(join(dir, ".agents/skills"))).rejects.toThrow();
@@ -156,7 +155,7 @@ describe("migrateAgentsSkillsDir", () => {
     await mkdir(join(dir, ".oneagent/skills"), { recursive: true });
     await writeFile(join(dir, ".agents/skills/review.md"), "from agents");
     await writeFile(join(dir, ".oneagent/skills/review.md"), "from oneagent");
-    await migrateAgentsSkillsDir(dir);
+    await migrateRuleAndSkillFiles(dir);
     const content = await Bun.file(join(dir, ".oneagent/skills/review.md")).text();
     expect(content).toBe("from oneagent");
   });
@@ -165,7 +164,7 @@ describe("migrateAgentsSkillsDir", () => {
     const dir = await mkTempDir();
     await mkdir(join(dir, ".agents/skills"), { recursive: true });
     await writeFile(join(dir, ".agents/skills/skill.md"), "content");
-    await migrateAgentsSkillsDir(dir);
+    await migrateRuleAndSkillFiles(dir);
     let isDir = false;
     try {
       const stat = await lstat(join(dir, ".agents/skills"));
@@ -174,6 +173,72 @@ describe("migrateAgentsSkillsDir", () => {
       isDir = false;
     }
     expect(isDir).toBe(false);
+  });
+});
+
+describe("migrateRuleAndSkillFiles", () => {
+  test("no-op when agent dirs don't exist", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".oneagent/rules"), { recursive: true });
+    await mkdir(join(dir, ".oneagent/skills"), { recursive: true });
+    // should not throw
+    await migrateRuleAndSkillFiles(dir);
+  });
+
+  test("moves .cursor/rules/ files to .oneagent/rules/", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".cursor/rules"), { recursive: true });
+    await writeFile(join(dir, ".cursor/rules/style.md"), "# Style");
+    await migrateRuleAndSkillFiles(dir);
+    const content = await Bun.file(join(dir, ".oneagent/rules/style.md")).text();
+    expect(content).toBe("# Style");
+  });
+
+  test("moves .claude/rules/ files to .oneagent/rules/", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".claude/rules"), { recursive: true });
+    await writeFile(join(dir, ".claude/rules/typescript.md"), "# TypeScript");
+    await migrateRuleAndSkillFiles(dir);
+    const content = await Bun.file(join(dir, ".oneagent/rules/typescript.md")).text();
+    expect(content).toBe("# TypeScript");
+  });
+
+  test("dest wins on conflict — .claude/rules does not overwrite file already migrated from .cursor/rules", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".cursor/rules"), { recursive: true });
+    await mkdir(join(dir, ".claude/rules"), { recursive: true });
+    await writeFile(join(dir, ".cursor/rules/style.md"), "from cursor");
+    await writeFile(join(dir, ".claude/rules/style.md"), "from claude");
+    await migrateRuleAndSkillFiles(dir);
+    // cursor was migrated first, claude should be skipped
+    const content = await Bun.file(join(dir, ".oneagent/rules/style.md")).text();
+    expect(content).toBe("from cursor");
+  });
+
+  test("moves .windsurf/rules/ files to .oneagent/rules/", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".windsurf/rules"), { recursive: true });
+    await writeFile(join(dir, ".windsurf/rules/python.md"), "# Python");
+    await migrateRuleAndSkillFiles(dir);
+    const content = await Bun.file(join(dir, ".oneagent/rules/python.md")).text();
+    expect(content).toBe("# Python");
+  });
+
+  test("skips symlinks in agent dirs — does not move them", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".cursor/rules"), { recursive: true });
+    await mkdir(join(dir, ".oneagent/rules"), { recursive: true });
+    // create a real file that the symlink points to
+    await writeFile(join(dir, ".oneagent/rules/real.md"), "real content");
+    // create symlink in .cursor/rules (simulating already-generated symlink)
+    await symlink(join(dir, ".oneagent/rules/real.md"), join(dir, ".cursor/rules/real.md"));
+    await migrateRuleAndSkillFiles(dir);
+    // .oneagent/rules/real.md should still be the original file content
+    const content = await Bun.file(join(dir, ".oneagent/rules/real.md")).text();
+    expect(content).toBe("real content");
+    // symlink should remain a symlink (not moved)
+    const stat = await lstat(join(dir, ".cursor/rules/real.md"));
+    expect(stat.isSymbolicLink()).toBe(true);
   });
 });
 
