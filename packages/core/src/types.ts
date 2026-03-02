@@ -2,7 +2,7 @@ export type AgentTarget = "claude" | "cursor" | "windsurf" | "opencode" | "copil
 
 export interface Config {
   version: 1;
-  targets: AgentTarget[];
+  targets: Record<AgentTarget, boolean>;
 }
 
 export interface DetectedFile {

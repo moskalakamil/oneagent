@@ -15,6 +15,7 @@ import { timeAgo } from "../utils.ts";
 import {
   configExists,
   writeConfig,
+  makeTargets,
   detectExistingFiles,
   filesHaveSameContent,
   generate,
@@ -146,7 +147,7 @@ export default defineCommand({
 
     const detected = await detectExistingFiles(root);
     const content = await chooseContent(detected);
-    const targets = await pickTargets();
+    const selectedTargets = await pickTargets();
 
     const s = spinner();
     s.start("Setting up .oneagent/ directory...");
@@ -156,7 +157,7 @@ export default defineCommand({
 
     await backupFiles(root, detected);
 
-    const config: Config = { version: 1, targets };
+    const config: Config = { version: 1, targets: makeTargets(...selectedTargets) };
     await writeConfig(root, config);
 
     const instructionsContent =
@@ -174,7 +175,7 @@ export default defineCommand({
     const lines = [
       "Created .oneagent/instructions.md",
       "Created .oneagent/rules/oneagent.md",
-      ...targets.map((t) => `Configured: ${t}`),
+      ...selectedTargets.map((t) => `Configured: ${t}`),
       ...(detected.length > 0
         ? [`Backed up ${detected.length} file(s) to .oneagent/backup/`]
         : []),
