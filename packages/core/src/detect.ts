@@ -45,3 +45,29 @@ export function filesHaveSameContent(files: DetectedFile[]): boolean {
   const first = files[0]!.content;
   return files.every((f) => f.content === first);
 }
+
+const DEPRECATED_FILES = [".cursorrules"];
+
+export async function removeDeprecatedFiles(root: string): Promise<void> {
+  for (const rel of DEPRECATED_FILES) {
+    const absPath = path.join(root, rel);
+    try {
+      const stat = await fs.lstat(absPath);
+      if (!stat.isSymbolicLink()) await fs.unlink(absPath);
+    } catch {
+      // doesn't exist — no-op
+    }
+  }
+}
+
+export async function detectDeprecatedCommandFiles(root: string): Promise<string[]> {
+  const commandsDir = path.join(root, ".claude/commands");
+  try {
+    const entries = await fs.readdir(commandsDir, { withFileTypes: true });
+    return entries
+      .filter((e) => e.isFile())
+      .map((e) => path.join(".claude/commands", e.name));
+  } catch {
+    return [];
+  }
+}

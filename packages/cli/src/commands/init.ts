@@ -11,7 +11,7 @@ import {
 } from "@clack/prompts";
 import path from "path";
 import fs from "fs/promises";
-import { timeAgo } from "../utils.ts";
+import { timeAgo, warnDeprecatedCommandFiles } from "../utils.ts";
 import {
   configExists,
   writeConfig,
@@ -20,6 +20,7 @@ import {
   filesHaveSameContent,
   generate,
   migrateRuleAndSkillFiles,
+  removeDeprecatedFiles,
   type AgentTarget,
   type Config,
   type DetectedFile,
@@ -157,6 +158,9 @@ export default defineCommand({
     await fs.mkdir(path.join(root, ".oneagent/skills"), { recursive: true });
 
     await backupFiles(root, detected);
+    await removeDeprecatedFiles(root);
+    await warnDeprecatedCommandFiles(root);
+
     await migrateRuleAndSkillFiles(root);
 
     const config: Config = { version: 1, targets: makeTargets(...selectedTargets) };

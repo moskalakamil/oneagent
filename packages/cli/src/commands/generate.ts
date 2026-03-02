@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs/promises";
 import { defineCommand } from "citty";
 import { confirm, isCancel, note, outro, spinner } from "@clack/prompts";
+import { warnDeprecatedCommandFiles } from "../utils.ts";
 import { readConfig, generate, detectGenerateCollisions, migrateRuleAndSkillFiles } from "@moskala/oneagent-core";
 
 export default defineCommand({
@@ -31,6 +32,8 @@ export default defineCommand({
         await Bun.write(path.join(backupDir, safeName), file.content);
       }
     }
+
+    await warnDeprecatedCommandFiles(root);
 
     // Prompt only for rule/skill files
     if (ruleSkillFiles.length > 0) {
