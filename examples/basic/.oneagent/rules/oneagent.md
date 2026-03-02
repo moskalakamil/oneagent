@@ -5,9 +5,9 @@ applyTo: "**"
 
 This project uses [oneagent](https://github.com/moskalakamil/oneagent) to manage AI agent configuration.
 
-Rules are stored in `.one/rules/` and distributed to agents automatically via symlinks or generated files.
+Rules are stored in `.oneagent/rules/` and distributed to agents automatically via symlinks or generated files.
 
-To add a new rule, create a `.md` file in `.one/rules/` with optional frontmatter:
+To add a new rule, create a `.md` file in `.oneagent/rules/` with optional frontmatter:
 
 ```md
 ---

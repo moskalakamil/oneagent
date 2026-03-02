@@ -1,3 +1,7 @@
 version: 1
 targets:
-  - claude
+  claude: true
+  cursor: true
+  windsurf: false
+  opencode: false
+  copilot: false
