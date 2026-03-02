@@ -9,27 +9,32 @@ import { buildCopilotContent, copilotFilePath, buildCopilotPromptContent, copilo
 import { writeOpencode } from "./opencode.ts";
 import { readDetectedFile } from "./detect.ts";
 
-export async function detectGenerateCollisions(root: string, config: Config): Promise<DetectedFile[]> {
+export interface GenerateCollisions {
+  mainFiles: DetectedFile[];
+  ruleSkillFiles: DetectedFile[];
+}
+
+export async function detectGenerateCollisions(root: string, config: Config): Promise<GenerateCollisions> {
   const [rules, skills] = await Promise.all([readRules(root), readSkills(root)]);
   const targets = activeTargets(config);
 
-  // 1. Symlink paths — real non-dotai files are collisions
-  const symlinkEntries = [
-    ...buildMainSymlinks(root, targets),
+  // 1. Main instruction file symlinks (CLAUDE.md, AGENTS.md, .windsurfrules, etc.)
+  const mainEntries = buildMainSymlinks(root, targets);
+  // 2. Rule/skill symlink paths
+  const ruleSkillEntries = [
     ...buildRulesSymlinks(root, targets, rules),
     ...buildSkillSymlinks(root, targets, skills),
     // .agents/skills skipped — handled by migrateAgentsSkillsDir
   ];
 
-  const symlinkCollisions = (
-    await Promise.all(
-      symlinkEntries.map((entry) =>
-        readDetectedFile(root, path.relative(root, entry.symlinkPath))
-      )
-    )
-  ).filter((f): f is DetectedFile => f !== null);
+  const [mainCollisions, ruleSkillSymlinkCollisions] = await Promise.all([
+    Promise.all(mainEntries.map((entry) => readDetectedFile(root, path.relative(root, entry.symlinkPath))))
+      .then((files) => files.filter((f): f is DetectedFile => f !== null)),
+    Promise.all(ruleSkillEntries.map((entry) => readDetectedFile(root, path.relative(root, entry.symlinkPath))))
+      .then((files) => files.filter((f): f is DetectedFile => f !== null)),
+  ]);
 
-  // 2. Copilot generated files — collision only if content differs (idempotent-safe)
+  // 3. Copilot generated files — collision only if content differs (idempotent-safe)
   const copilotCollisions: DetectedFile[] = [];
   if (targets.includes("copilot")) {
     const checks = await Promise.all([
@@ -55,7 +60,10 @@ export async function detectGenerateCollisions(root: string, config: Config): Pr
     copilotCollisions.push(...checks.filter((c): c is DetectedFile => c !== null));
   }
 
-  return [...symlinkCollisions, ...copilotCollisions];
+  return {
+    mainFiles: mainCollisions,
+    ruleSkillFiles: [...ruleSkillSymlinkCollisions, ...copilotCollisions],
+  };
 }
 
 export async function generate(root: string, config: Config): Promise<void> {

@@ -118,7 +118,7 @@ export function buildAgentsDirSymlinks(root: string): SymlinkEntry[] {
   return [{ symlinkPath, target: relativeTarget(symlinkPath, targetAbs), label: ".agents/skills" }];
 }
 
-async function migrateFilesFromDir(srcDir: string, destDir: string): Promise<void> {
+async function migrateFilesFromDir(srcDir: string, destDir: string, root: string): Promise<void> {
   await fs.mkdir(destDir, { recursive: true });
   let entries: import("fs").Dirent[];
   try {
@@ -128,17 +128,38 @@ async function migrateFilesFromDir(srcDir: string, destDir: string): Promise<voi
   }
   for (const entry of entries) {
     if (!entry.isFile()) continue; // skip symlinks and subdirs
+    const srcFile = path.join(srcDir, entry.name);
     const destFile = path.join(destDir, entry.name);
+
+    let destExists = false;
     try {
       await fs.access(destFile);
-      // dest exists — skip (dest wins)
+      destExists = true;
     } catch {
-      await fs.rename(path.join(srcDir, entry.name), destFile);
+      // dest doesn't exist
+    }
+
+    if (destExists) {
+      // dest exists — compare content before deleting source
+      const [srcContent, destContent] = await Promise.all([
+        Bun.file(srcFile).text(),
+        Bun.file(destFile).text(),
+      ]);
+      if (srcContent !== destContent) {
+        // Different content — backup source before deleting
+        const backupDir = path.join(root, ".oneagent/backup");
+        await fs.mkdir(backupDir, { recursive: true });
+        const safeName = path.relative(root, srcFile).replace(/\//g, "_");
+        await Bun.write(path.join(backupDir, safeName), srcContent);
+      }
+      await fs.unlink(srcFile); // safe to delete — dest has the content (or backup was created)
+    } else {
+      await fs.rename(srcFile, destFile);
     }
   }
 }
 
-async function migrateAndRemoveDir(src: string, dest: string): Promise<void> {
+async function migrateAndRemoveDir(src: string, dest: string, root: string): Promise<void> {
   let stat;
   try {
     stat = await fs.lstat(src);
@@ -146,7 +167,7 @@ async function migrateAndRemoveDir(src: string, dest: string): Promise<void> {
     return; // doesn't exist — no-op
   }
   if (stat.isSymbolicLink() || !stat.isDirectory()) return;
-  await migrateFilesFromDir(src, dest);
+  await migrateFilesFromDir(src, dest, root);
   await fs.rm(src, { recursive: true, force: true });
 }
 
@@ -156,12 +177,12 @@ export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
   // Rules dirs: only individual files become symlinks, so we only move the files.
   // The directories themselves stay — generate() recreates per-file symlinks inside them.
   // Sequential to avoid same-name conflicts across dirs.
-  await migrateFilesFromDir(path.join(root, ".cursor/rules"), destRules);
-  await migrateFilesFromDir(path.join(root, ".claude/rules"), destRules);
-  await migrateFilesFromDir(path.join(root, ".windsurf/rules"), destRules);
+  await migrateFilesFromDir(path.join(root, ".cursor/rules"), destRules, root);
+  await migrateFilesFromDir(path.join(root, ".claude/rules"), destRules, root);
+  await migrateFilesFromDir(path.join(root, ".windsurf/rules"), destRules, root);
   // .agents/skills is different: the entire directory becomes a symlink to .oneagent/skills,
   // so the real directory must be removed first to make room for the symlink.
-  await migrateAndRemoveDir(path.join(root, ".agents/skills"), destSkills);
+  await migrateAndRemoveDir(path.join(root, ".agents/skills"), destSkills, root);
 }
 
 export async function createAllSymlinks(entries: SymlinkEntry[]): Promise<void> {

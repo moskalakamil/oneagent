@@ -21,47 +21,49 @@ function makeConfig(...targets: Parameters<typeof makeTargets>[0][]): Config {
 }
 
 describe("detectGenerateCollisions", () => {
-  test("returns [] on first run — no files exist", async () => {
+  test("returns empty on first run — no files exist", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
     const collisions = await detectGenerateCollisions(dir, makeConfig("claude"));
-    expect(collisions).toEqual([]);
+    expect(collisions).toEqual({ mainFiles: [], ruleSkillFiles: [] });
   });
 
-  test("returns [] when symlinks already point to .oneagent/ (idempotent)", async () => {
+  test("returns empty when symlinks already point to .oneagent/ (idempotent)", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
     await generate(dir, makeConfig("claude"));
     const collisions = await detectGenerateCollisions(dir, makeConfig("claude"));
-    expect(collisions).toEqual([]);
+    expect(collisions).toEqual({ mainFiles: [], ruleSkillFiles: [] });
   });
 
-  test("detects real CLAUDE.md for claude target", async () => {
+  test("detects real CLAUDE.md in mainFiles for claude target", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
     await Bun.write(join(dir, "CLAUDE.md"), "# Real instructions");
-    const collisions = await detectGenerateCollisions(dir, makeConfig("claude"));
-    expect(collisions.some((f) => f.relativePath === "CLAUDE.md")).toBe(true);
+    const { mainFiles, ruleSkillFiles } = await detectGenerateCollisions(dir, makeConfig("claude"));
+    expect(mainFiles.some((f) => f.relativePath === "CLAUDE.md")).toBe(true);
+    expect(ruleSkillFiles.some((f) => f.relativePath === "CLAUDE.md")).toBe(false);
   });
 
-  test("detects real .cursor/rules/style.md for cursor target with a rule", async () => {
+  test("detects real .cursor/rules/style.md in ruleSkillFiles for cursor target with a rule", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
     await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
     await mkdir(join(dir, ".cursor/rules"), { recursive: true });
     await writeFile(join(dir, ".cursor/rules/style.md"), "# Real cursor style");
-    const collisions = await detectGenerateCollisions(dir, makeConfig("cursor"));
-    expect(collisions.some((f) => f.relativePath === ".cursor/rules/style.md")).toBe(true);
+    const { mainFiles, ruleSkillFiles } = await detectGenerateCollisions(dir, makeConfig("cursor"));
+    expect(ruleSkillFiles.some((f) => f.relativePath === ".cursor/rules/style.md")).toBe(true);
+    expect(mainFiles.some((f) => f.relativePath === ".cursor/rules/style.md")).toBe(false);
   });
 
-  test("detects copilot rule file with different content", async () => {
+  test("detects copilot rule file with different content in ruleSkillFiles", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
     await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
     await mkdir(join(dir, ".github/instructions"), { recursive: true });
     await writeFile(join(dir, ".github/instructions/style.instructions.md"), "# Different content");
-    const collisions = await detectGenerateCollisions(dir, makeConfig("copilot"));
-    expect(collisions.some((f) => f.relativePath === ".github/instructions/style.instructions.md")).toBe(true);
+    const { ruleSkillFiles } = await detectGenerateCollisions(dir, makeConfig("copilot"));
+    expect(ruleSkillFiles.some((f) => f.relativePath === ".github/instructions/style.instructions.md")).toBe(true);
   });
 
   test("does NOT detect copilot rule file with matching content (idempotent)", async () => {
@@ -70,8 +72,8 @@ describe("detectGenerateCollisions", () => {
     await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
     // Generate so the copilot file has the correct content
     await generate(dir, makeConfig("copilot"));
-    const collisions = await detectGenerateCollisions(dir, makeConfig("copilot"));
-    expect(collisions.some((f) => f.relativePath === ".github/instructions/style.instructions.md")).toBe(false);
+    const { ruleSkillFiles } = await detectGenerateCollisions(dir, makeConfig("copilot"));
+    expect(ruleSkillFiles.some((f) => f.relativePath === ".github/instructions/style.instructions.md")).toBe(false);
   });
 });
 

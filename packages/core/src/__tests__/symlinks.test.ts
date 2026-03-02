@@ -158,6 +158,8 @@ describe("migrateRuleAndSkillFiles — .agents/skills", () => {
     await migrateRuleAndSkillFiles(dir);
     const content = await Bun.file(join(dir, ".oneagent/skills/review.md")).text();
     expect(content).toBe("from oneagent");
+    // entire .agents/skills dir is removed after migration
+    await expect(access(join(dir, ".agents/skills"))).rejects.toThrow();
   });
 
   test(".agents/skills no longer exists as directory after migration", async () => {
@@ -213,6 +215,38 @@ describe("migrateRuleAndSkillFiles", () => {
     // cursor was migrated first, claude should be skipped
     const content = await Bun.file(join(dir, ".oneagent/rules/style.md")).text();
     expect(content).toBe("from cursor");
+    // source file was deleted (not left in place)
+    await expect(access(join(dir, ".claude/rules/style.md"))).rejects.toThrow();
+  });
+
+  test("dest wins with same content — source deleted, no backup created", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".cursor/rules"), { recursive: true });
+    await mkdir(join(dir, ".oneagent/rules"), { recursive: true });
+    await writeFile(join(dir, ".cursor/rules/style.md"), "shared content");
+    await writeFile(join(dir, ".oneagent/rules/style.md"), "shared content");
+    await migrateRuleAndSkillFiles(dir);
+    // source deleted
+    await expect(access(join(dir, ".cursor/rules/style.md"))).rejects.toThrow();
+    // no backup created (identical content)
+    await expect(access(join(dir, ".oneagent/backup"))).rejects.toThrow();
+  });
+
+  test("dest wins with different content — source backed up then deleted", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".cursor/rules"), { recursive: true });
+    await mkdir(join(dir, ".oneagent/rules"), { recursive: true });
+    await writeFile(join(dir, ".cursor/rules/style.md"), "cursor version");
+    await writeFile(join(dir, ".oneagent/rules/style.md"), "oneagent version");
+    await migrateRuleAndSkillFiles(dir);
+    // source deleted
+    await expect(access(join(dir, ".cursor/rules/style.md"))).rejects.toThrow();
+    // backup created with source content
+    const backup = await Bun.file(join(dir, ".oneagent/backup/.cursor_rules_style.md")).text();
+    expect(backup).toBe("cursor version");
+    // dest unchanged
+    const dest = await Bun.file(join(dir, ".oneagent/rules/style.md")).text();
+    expect(dest).toBe("oneagent version");
   });
 
   test("moves .windsurf/rules/ files to .oneagent/rules/", async () => {
