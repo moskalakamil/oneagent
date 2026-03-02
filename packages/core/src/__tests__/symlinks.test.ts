@@ -2,7 +2,7 @@ import { test, expect, describe } from "bun:test";
 import { mkdtemp, lstat } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createSymlink, buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, checkSymlink } from "../symlinks.ts";
+import { createSymlink, buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildAgentsDirSymlinks, checkSymlink } from "../symlinks.ts";
 import type { RuleFile, SkillFile } from "../types.ts";
 
 async function mkTempDir(): Promise<string> {
@@ -102,6 +102,24 @@ describe("buildSkillSymlinks", () => {
     for (const e of entries) {
       expect(e.target.startsWith("/")).toBe(false);
     }
+  });
+});
+
+describe("buildAgentsDirSymlinks", () => {
+  test("returns single entry pointing to .agents/skills", () => {
+    const entries = buildAgentsDirSymlinks("/root");
+    expect(entries.length).toBe(1);
+    expect(entries[0]!.symlinkPath).toBe("/root/.agents/skills");
+  });
+
+  test("target is relative (not absolute)", () => {
+    const entries = buildAgentsDirSymlinks("/root");
+    expect(entries[0]!.target.startsWith("/")).toBe(false);
+  });
+
+  test("target resolves to .oneagent/skills", () => {
+    const entries = buildAgentsDirSymlinks("/root");
+    expect(entries[0]!.target).toBe("../.oneagent/skills");
   });
 });
 

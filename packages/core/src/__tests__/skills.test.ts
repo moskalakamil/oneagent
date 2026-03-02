@@ -76,3 +76,4 @@ describe("readSkills", () => {
     expect(skills.map((s) => s.name)).toEqual(["apple", "zebra"]);
   });
 });
+

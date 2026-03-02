@@ -1,7 +1,8 @@
 import type { Config, GeneratedFileCheck, OpenCodeCheck, RuleFile, StatusResult } from "./types.ts";
+import { activeTargets } from "./config.ts";
 import { readRules } from "./rules.ts";
 import { readSkills } from "./skills.ts";
-import { buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, checkSymlink } from "./symlinks.ts";
+import { buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildAgentsDirSymlinks, checkSymlink } from "./symlinks.ts";
 import { buildCopilotContent, buildCopilotPromptContent, copilotFilePath, copilotPromptFilePath } from "./copilot.ts";
 import { readOpencode } from "./opencode.ts";
 
@@ -38,16 +39,18 @@ export async function checkCopilotPrompt(root: string, skill: import("./types.ts
 
 export async function checkStatus(root: string, config: Config): Promise<StatusResult> {
   const [rules, skills] = await Promise.all([readRules(root), readSkills(root)]);
+  const targets = activeTargets(config);
 
   const allEntries = [
-    ...buildMainSymlinks(root, config.targets),
-    ...buildRulesSymlinks(root, config.targets, rules),
-    ...buildSkillSymlinks(root, config.targets, skills),
+    ...buildMainSymlinks(root, targets),
+    ...buildRulesSymlinks(root, targets, rules),
+    ...buildSkillSymlinks(root, targets, skills),
+    ...buildAgentsDirSymlinks(root),
   ];
 
   const symlinks = await Promise.all(allEntries.map(checkSymlink));
 
-  const generatedFiles = config.targets.includes("copilot")
+  const generatedFiles = targets.includes("copilot")
     ? await Promise.all([
         ...rules.map((rule) => checkGeneratedFile(root, rule)),
         ...skills.map((skill) => checkCopilotPrompt(root, skill)),

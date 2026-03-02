@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, lstat, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { generate } from "../generate.ts";
+import { makeTargets } from "../config.ts";
 import type { Config } from "../types.ts";
 
 async function mkTempDir(): Promise<string> {
@@ -14,12 +15,15 @@ async function setupProject(dir: string): Promise<void> {
   await Bun.write(join(dir, ".oneagent/instructions.md"), "# Instructions");
 }
 
+function makeConfig(...targets: Parameters<typeof makeTargets>[0][]): Config {
+  return { version: 1, targets: makeTargets(...targets) };
+}
+
 describe("generate", () => {
   test("creates CLAUDE.md symlink for claude target", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
-    const config: Config = { version: 1, targets: ["claude"] };
-    await generate(dir, config);
+    await generate(dir, makeConfig("claude"));
     const stat = await lstat(join(dir, "CLAUDE.md"));
     expect(stat.isSymbolicLink()).toBe(true);
   });
@@ -27,8 +31,7 @@ describe("generate", () => {
   test("creates AGENTS.md symlink for cursor target", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
-    const config: Config = { version: 1, targets: ["cursor"] };
-    await generate(dir, config);
+    await generate(dir, makeConfig("cursor"));
     const stat = await lstat(join(dir, "AGENTS.md"));
     expect(stat.isSymbolicLink()).toBe(true);
   });
@@ -36,8 +39,7 @@ describe("generate", () => {
   test("creates .windsurfrules symlink for windsurf target", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
-    const config: Config = { version: 1, targets: ["windsurf"] };
-    await generate(dir, config);
+    await generate(dir, makeConfig("windsurf"));
     const stat = await lstat(join(dir, ".windsurfrules"));
     expect(stat.isSymbolicLink()).toBe(true);
   });
@@ -45,8 +47,7 @@ describe("generate", () => {
   test("writes opencode.json for opencode target", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
-    const config: Config = { version: 1, targets: ["opencode"] };
-    await generate(dir, config);
+    await generate(dir, makeConfig("opencode"));
     expect(await Bun.file(join(dir, "opencode.json")).exists()).toBe(true);
   });
 
@@ -55,8 +56,7 @@ describe("generate", () => {
     await mkdir(join(dir, ".oneagent/rules"), { recursive: true });
     await Bun.write(join(dir, ".oneagent/instructions.md"), "# Instructions");
     await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
-    const config: Config = { version: 1, targets: ["copilot"] };
-    await generate(dir, config);
+    await generate(dir, makeConfig("copilot"));
     expect(
       await Bun.file(join(dir, ".github/instructions/style.instructions.md")).exists(),
     ).toBe(true);
@@ -67,16 +67,24 @@ describe("generate", () => {
     await mkdir(join(dir, ".oneagent/rules"), { recursive: true });
     await Bun.write(join(dir, ".oneagent/instructions.md"), "# Instructions");
     await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
-    const config: Config = { version: 1, targets: ["claude"] };
-    await generate(dir, config);
+    await generate(dir, makeConfig("claude"));
     const stat = await lstat(join(dir, ".claude/rules/style.md"));
+    expect(stat.isSymbolicLink()).toBe(true);
+  });
+
+  test("creates .agents/skills directory symlink pointing to .oneagent/skills", async () => {
+    const dir = await mkTempDir();
+    await setupProject(dir);
+    await mkdir(join(dir, ".oneagent/skills"), { recursive: true });
+    await generate(dir, makeConfig("claude"));
+    const stat = await lstat(join(dir, ".agents/skills"));
     expect(stat.isSymbolicLink()).toBe(true);
   });
 
   test("is idempotent — running twice produces same result", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
-    const config: Config = { version: 1, targets: ["claude"] };
+    const config = makeConfig("claude");
     await generate(dir, config);
     await generate(dir, config);
     const stat = await lstat(join(dir, "CLAUDE.md"));

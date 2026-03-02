@@ -112,6 +112,12 @@ export function buildSkillSymlinks(root: string, targets: AgentTarget[], skills:
   });
 }
 
+export function buildAgentsDirSymlinks(root: string): SymlinkEntry[] {
+  const symlinkPath = path.join(root, ".agents/skills");
+  const targetAbs = path.join(root, ".oneagent/skills");
+  return [{ symlinkPath, target: relativeTarget(symlinkPath, targetAbs), label: ".agents/skills" }];
+}
+
 export async function createAllSymlinks(entries: SymlinkEntry[]): Promise<void> {
   await Promise.all(entries.map((e) => createSymlink(e.symlinkPath, e.target)));
 }
