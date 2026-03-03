@@ -44,7 +44,7 @@ export async function checkStatus(root: string, config: Config): Promise<StatusR
 
   const allEntries = [
     ...buildMainSymlinks(root, targets),
-    ...buildRulesSymlinks(root, targets, rules),
+    ...buildRulesSymlinks(root, targets),
     ...buildSkillSymlinks(root, targets),
     ...buildAgentsDirSymlinks(root),
   ];

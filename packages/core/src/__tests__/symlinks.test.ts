@@ -3,7 +3,6 @@ import { mkdtemp, lstat, mkdir, writeFile, symlink, access } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createSymlink, buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildAgentsDirSymlinks, checkSymlink, migrateRuleAndSkillFiles } from "../symlinks.ts";
-import type { RuleFile } from "../types.ts";
 
 async function mkTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "dotai-test-"));
@@ -62,17 +61,20 @@ describe("buildMainSymlinks", () => {
 });
 
 describe("buildRulesSymlinks", () => {
-  const rules: RuleFile[] = [
-    { name: "typescript", path: "/root/.oneagent/rules/typescript.md", applyTo: "**", content: "" },
-  ];
+  test("creates directory symlink for claude", () => {
+    const entries = buildRulesSymlinks("/root", ["claude"]);
+    expect(entries.some((e) => e.symlinkPath === "/root/.claude/rules")).toBe(true);
+  });
 
-  test("creates .claude/rules/ entries for claude", () => {
-    const entries = buildRulesSymlinks("/root", ["claude"], rules);
-    expect(entries.some((e) => e.symlinkPath.includes(".claude/rules/typescript.md"))).toBe(true);
+  test("target points to .oneagent/rules", () => {
+    const entries = buildRulesSymlinks("/root", ["claude", "cursor", "windsurf"]);
+    for (const e of entries) {
+      expect(e.target).toBe("../.oneagent/rules");
+    }
   });
 
   test("skips copilot and opencode (handled separately)", () => {
-    const entries = buildRulesSymlinks("/root", ["copilot", "opencode"], rules);
+    const entries = buildRulesSymlinks("/root", ["copilot", "opencode"]);
     expect(entries.length).toBe(0);
   });
 });

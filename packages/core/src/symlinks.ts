@@ -57,45 +57,21 @@ export function buildMainSymlinks(root: string, targets: AgentTarget[]): Symlink
   return Array.from(seen.values());
 }
 
-export function buildRulesSymlinks(
-  root: string,
-  targets: AgentTarget[],
-  rules: RuleFile[],
-): SymlinkEntry[] {
-  const entries: SymlinkEntry[] = [];
+export function buildRulesSymlinks(root: string, targets: AgentTarget[]): SymlinkEntry[] {
+  const targetAbs = path.join(root, ".oneagent/rules");
+  const agentDirs: Partial<Record<AgentTarget, string>> = {
+    claude: path.join(root, ".claude/rules"),
+    cursor: path.join(root, ".cursor/rules"),
+    windsurf: path.join(root, ".windsurf/rules"),
+  };
 
-  for (const target of targets) {
-    let rulesDir: string | null = null;
-
-    switch (target) {
-      case "claude":
-        rulesDir = path.join(root, ".claude/rules");
-        break;
-      case "cursor":
-        rulesDir = path.join(root, ".cursor/rules");
-        break;
-      case "windsurf":
-        rulesDir = path.join(root, ".windsurf/rules");
-        break;
-      case "opencode":
-      case "copilot":
-        rulesDir = null;
-        break;
-    }
-
-    if (!rulesDir) continue;
-
-    for (const rule of rules) {
-      const symlinkPath = path.join(rulesDir, `${rule.name}.md`);
-      entries.push({
-        symlinkPath,
-        target: relativeTarget(symlinkPath, rule.path),
-        label: path.relative(root, symlinkPath),
-      });
-    }
-  }
-
-  return entries;
+  return (Object.entries(agentDirs) as [AgentTarget, string][])
+    .filter(([target]) => targets.includes(target))
+    .map(([, dir]) => ({
+      symlinkPath: dir,
+      target: relativeTarget(dir, targetAbs),
+      label: path.relative(root, dir),
+    }));
 }
 
 // Creates whole-directory symlinks: .claude/skills → .oneagent/skills, .cursor/skills → .oneagent/skills

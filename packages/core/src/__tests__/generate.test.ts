@@ -45,15 +45,14 @@ describe("detectGenerateCollisions", () => {
     expect(ruleSkillFiles.some((f) => f.relativePath === "CLAUDE.md")).toBe(false);
   });
 
-  test("detects real .cursor/rules/style.md in ruleSkillFiles for cursor target with a rule", async () => {
+  test("returns empty ruleSkillFiles when .cursor/rules is a real directory (migration handles it)", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
-    await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
     await mkdir(join(dir, ".cursor/rules"), { recursive: true });
     await writeFile(join(dir, ".cursor/rules/style.md"), "# Real cursor style");
-    const { mainFiles, ruleSkillFiles } = await detectGenerateCollisions(dir, makeConfig("cursor"));
-    expect(ruleSkillFiles.some((f) => f.relativePath === ".cursor/rules/style.md")).toBe(true);
-    expect(mainFiles.some((f) => f.relativePath === ".cursor/rules/style.md")).toBe(false);
+    const { ruleSkillFiles } = await detectGenerateCollisions(dir, makeConfig("cursor"));
+    // Directory collisions are handled by migrateRuleAndSkillFiles, not detectGenerateCollisions
+    expect(ruleSkillFiles.some((f) => f.relativePath === ".cursor/rules")).toBe(false);
   });
 
   test("detects copilot rule file with different content in ruleSkillFiles", async () => {
@@ -120,13 +119,13 @@ describe("generate", () => {
     ).toBe(true);
   });
 
-  test("creates rules symlinks for claude + rules", async () => {
+  test("creates .claude/rules directory symlink pointing to .oneagent/rules", async () => {
     const dir = await mkTempDir();
     await mkdir(join(dir, ".oneagent/rules"), { recursive: true });
     await Bun.write(join(dir, ".oneagent/instructions.md"), "# Instructions");
     await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
     await generate(dir, makeConfig("claude"));
-    const stat = await lstat(join(dir, ".claude/rules/style.md"));
+    const stat = await lstat(join(dir, ".claude/rules"));
     expect(stat.isSymbolicLink()).toBe(true);
   });
 
