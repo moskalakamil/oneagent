@@ -10,9 +10,9 @@ export async function ensureDir(dirPath: string): Promise<void> {
 export async function createSymlink(symlinkPath: string, target: string): Promise<void> {
   await ensureDir(path.dirname(symlinkPath));
   try {
-    await fs.unlink(symlinkPath);
+    await fs.rm(symlinkPath, { recursive: true });
   } catch {
-    // file doesn't exist — that's fine
+    // doesn't exist — that's fine
   }
   await fs.symlink(target, symlinkPath);
 }
@@ -122,14 +122,11 @@ async function migrateAndRemoveDir(src: string, dest: string, root: string): Pro
 export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
   const destRules = path.join(root, ".oneagent/rules");
   const destSkills = path.join(root, ".oneagent/skills");
-  // Rules dirs: only individual files become symlinks, so we only move the files.
-  // The directories themselves stay — generate() recreates per-file symlinks inside them.
+  // Rules dirs: the entire directory becomes a symlink, so move files out and remove the dir.
   // Sequential to avoid same-name conflicts across dirs.
-  await migrateFilesFromDir(path.join(root, ".cursor/rules"), destRules, root);
-  await migrateFilesFromDir(path.join(root, ".claude/rules"), destRules, root);
-  await migrateFilesFromDir(path.join(root, ".windsurf/rules"), destRules, root);
-  // .agents/skills is different: the entire directory becomes a symlink to .oneagent/skills,
-  // so the real directory must be removed first to make room for the symlink.
+  await migrateAndRemoveDir(path.join(root, ".cursor/rules"), destRules, root);
+  await migrateAndRemoveDir(path.join(root, ".claude/rules"), destRules, root);
+  await migrateAndRemoveDir(path.join(root, ".windsurf/rules"), destRules, root);
   await migrateAndRemoveDir(path.join(root, ".agents/skills"), destSkills, root);
 }
 

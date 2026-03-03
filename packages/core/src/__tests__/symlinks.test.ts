@@ -255,7 +255,7 @@ describe("migrateRuleAndSkillFiles", () => {
     expect(content).toBe("# Python");
   });
 
-  test("skips symlinks in agent dirs — does not move them", async () => {
+  test("removes agent rules dir entirely (to make room for directory symlink)", async () => {
     const dir = await mkTempDir();
     await mkdir(join(dir, ".cursor/rules"), { recursive: true });
     await mkdir(join(dir, ".oneagent/rules"), { recursive: true });
@@ -267,9 +267,8 @@ describe("migrateRuleAndSkillFiles", () => {
     // .oneagent/rules/real.md should still be the original file content
     const content = await Bun.file(join(dir, ".oneagent/rules/real.md")).text();
     expect(content).toBe("real content");
-    // symlink should remain a symlink (not moved)
-    const stat = await lstat(join(dir, ".cursor/rules/real.md"));
-    expect(stat.isSymbolicLink()).toBe(true);
+    // .cursor/rules directory should be removed (ready for directory symlink)
+    await expect(access(join(dir, ".cursor/rules"))).rejects.toThrow();
   });
 });
 
