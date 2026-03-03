@@ -1,0 +1,25 @@
+{
+  "name": "@moskala/oneagent-templates",
+  "version": "0.2.5",
+  "type": "module",
+  "description": "Built-in templates for oneagent",
+  "license": "MIT",
+  "module": "./src/index.ts",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@moskala/oneagent-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}

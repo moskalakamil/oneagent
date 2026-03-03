@@ -2,15 +2,47 @@ import path from "path";
 import fs from "fs/promises";
 import { execFile } from "child_process";
 import { promisify } from "util";
+import type { AgentTarget } from "./types.ts";
+import { addOpenCodePlugin } from "./opencode.ts";
 
 const execFileAsync = promisify(execFile);
+
+export interface TemplatePlugin {
+  target: AgentTarget;
+  id: string;
+}
 
 export interface TemplateDefinition {
   name: string;
   description: string;
   skills: string[];
+  plugins: TemplatePlugin[];
   instructions: string;
   rules: Array<{ name: string; content: string }>;
+}
+
+// Parses the `plugins:` block from a template.yml string.
+// Expects entries in the format:
+//   plugins:
+//     - target: claude
+//       id: typescript-lsp@claude-plugins-official
+export function parsePluginsFromYaml(yamlText: string): TemplatePlugin[] {
+  const plugins: TemplatePlugin[] = [];
+  const section = yamlText.match(/^plugins:\s*\n((?:(?:  -.+|\s{4}.+)\n?)*)/m);
+  if (!section) return plugins;
+  const block = section[1]!;
+  const entries = block.split(/\n(?=  -)/);
+  for (const entry of entries) {
+    const targetMatch = entry.match(/target:\s*(\S+)/);
+    const idMatch = entry.match(/id:\s*(.+)/);
+    if (targetMatch && idMatch) {
+      plugins.push({
+        target: targetMatch[1]!.trim() as AgentTarget,
+        id: idMatch[1]!.trim(),
+      });
+    }
+  }
+  return plugins;
 }
 
 // Phase 1: writes instructions.md and rules/*.md.
@@ -46,6 +78,61 @@ export async function installTemplateSkills(
   }
 }
 
+export interface PluginInstallResult {
+  installed: TemplatePlugin[];
+  manual: TemplatePlugin[];
+}
+
+// Phase 3: installs plugins for active targets. Call AFTER generate().
+// - claude  → `claude plugin install <id>`
+// - copilot → `copilot plugin install <id>`
+// - opencode → adds id to plugin[] in opencode.json
+// - cursor  → added to manual list (no CLI yet — user runs /add-plugin in chat)
+// - windsurf → skipped (no marketplace)
+export async function installTemplatePlugins(
+  root: string,
+  template: TemplateDefinition,
+  activeTargets: AgentTarget[],
+  onPluginInstalled?: (plugin: TemplatePlugin) => void,
+): Promise<PluginInstallResult> {
+  const installed: TemplatePlugin[] = [];
+  const manual: TemplatePlugin[] = [];
+
+  for (const plugin of template.plugins) {
+    if (!activeTargets.includes(plugin.target)) continue;
+
+    switch (plugin.target) {
+      case "claude":
+        await execFileAsync("claude", ["plugin", "install", plugin.id], { cwd: root });
+        installed.push(plugin);
+        onPluginInstalled?.(plugin);
+        break;
+
+      case "copilot":
+        await execFileAsync("copilot", ["plugin", "install", plugin.id], { cwd: root });
+        installed.push(plugin);
+        onPluginInstalled?.(plugin);
+        break;
+
+      case "opencode":
+        await addOpenCodePlugin(root, plugin.id);
+        installed.push(plugin);
+        onPluginInstalled?.(plugin);
+        break;
+
+      case "cursor":
+        manual.push(plugin);
+        break;
+
+      case "windsurf":
+        // No marketplace yet — skip silently
+        break;
+    }
+  }
+
+  return { installed, manual };
+}
+
 // Fetches a template from a GitHub URL.
 // Expects the repository to contain: template.yml, instructions.md, and optionally rules/*.md
 export async function fetchTemplateFromGitHub(url: string): Promise<TemplateDefinition> {
@@ -74,10 +161,12 @@ export async function fetchTemplateFromGitHub(url: string): Promise<TemplateDefi
     }
   }
 
+  const plugins = parsePluginsFromYaml(yamlText);
+
   // Try to list rules via GitHub API
   const rules = await fetchGitHubRules(url);
 
-  return { name, description, skills, instructions, rules };
+  return { name, description, skills, plugins, instructions, rules };
 }
 
 async function fetchText(url: string): Promise<string> {

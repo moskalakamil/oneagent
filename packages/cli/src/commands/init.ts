@@ -23,7 +23,9 @@ import {
   removeDeprecatedFiles,
   applyTemplateFiles,
   installTemplateSkills,
+  installTemplatePlugins,
   fetchTemplateFromGitHub,
+  type PluginInstallResult,
   AGENT_DEFINITIONS,
   type AgentTarget,
   type Config,
@@ -245,6 +247,14 @@ export default defineCommand({
       s3.stop(`Installed ${fetchedSkills.length} skill(s).`);
     }
 
+    let pluginResult: PluginInstallResult = { installed: [], manual: [] };
+    if (template && template.plugins.length > 0) {
+      const s4 = spinner();
+      s4.start("Installing plugins...");
+      pluginResult = await installTemplatePlugins(root, template, selectedTargets);
+      s4.stop(`Installed ${pluginResult.installed.length} plugin(s).`);
+    }
+
     const lines = [
       ...(template
         ? [
@@ -255,6 +265,10 @@ export default defineCommand({
             ...(template.rules.length > 0
               ? [`Added ${template.rules.length} rule(s) from template`]
               : []),
+            ...(pluginResult.installed.length > 0
+              ? [`Installed ${pluginResult.installed.length} plugin(s): ${pluginResult.installed.map((p) => p.id).join(", ")}`]
+              : []),
+            ...pluginResult.manual.map((p) => `Run in Cursor chat: /add-plugin ${p.id}`),
           ]
         : ["Created .oneagent/instructions.md"]),
       "Created .oneagent/rules/oneagent.md",

@@ -1,8 +1,8 @@
 import { test, expect, describe } from "bun:test";
-import { mkdtemp } from "fs/promises";
+import { mkdtemp, writeFile, readFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { readOpencode, buildOpencodeConfig, writeOpencode } from "../opencode.ts";
+import { readOpencode, buildOpencodeConfig, writeOpencode, addOpenCodePlugin } from "../opencode.ts";
 
 async function mkTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "dotai-test-"));
@@ -32,6 +32,37 @@ describe("buildOpencodeConfig", () => {
     const config = buildOpencodeConfig({ model: "gpt-4" }) as Record<string, unknown>;
     expect(config["model"]).toBe("gpt-4");
     expect(config["instructions"]).toBe(".oneagent/instructions.md");
+  });
+});
+
+describe("addOpenCodePlugin", () => {
+  test("adds plugin id to plugin array", async () => {
+    const dir = await mkTempDir();
+    await writeFile(join(dir, "opencode.json"), JSON.stringify({ instructions: ".oneagent/instructions.md" }));
+    await addOpenCodePlugin(dir, "opencode-wakatime");
+    const content = JSON.parse(await readFile(join(dir, "opencode.json"), "utf-8")) as Record<string, unknown>;
+    expect(content["plugin"]).toContain("opencode-wakatime");
+  });
+
+  test("creates plugin array when not present", async () => {
+    const dir = await mkTempDir();
+    await writeFile(join(dir, "opencode.json"), JSON.stringify({}));
+    await addOpenCodePlugin(dir, "opencode-wakatime");
+    const content = JSON.parse(await readFile(join(dir, "opencode.json"), "utf-8")) as Record<string, unknown>;
+    expect(content["plugin"]).toEqual(["opencode-wakatime"]);
+  });
+
+  test("does not duplicate plugin ids", async () => {
+    const dir = await mkTempDir();
+    await writeFile(join(dir, "opencode.json"), JSON.stringify({ plugin: ["opencode-wakatime"] }));
+    await addOpenCodePlugin(dir, "opencode-wakatime");
+    const content = JSON.parse(await readFile(join(dir, "opencode.json"), "utf-8")) as Record<string, unknown>;
+    expect(content["plugin"]).toEqual(["opencode-wakatime"]);
+  });
+
+  test("no-op when opencode.json does not exist", async () => {
+    const dir = await mkTempDir();
+    await expect(addOpenCodePlugin(dir, "opencode-wakatime")).resolves.toBeUndefined();
   });
 });
 

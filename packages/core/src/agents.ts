@@ -49,11 +49,11 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
   {
     target: "opencode",
     displayName: "OpenCode",
-    hint: "AGENTS.md + opencode.json",
+    hint: "AGENTS.md + .opencode/",
     detectIndicators: ["opencode.json", ".opencode"],
     mainFile: "AGENTS.md",
-    // rules: handled via opencode.json config, not symlinks
-    // skills: handled via .agents/skills dir symlink
+    rulesDir: ".opencode/rules",
+    skillsDir: ".opencode/skills",
   },
   {
     target: "copilot",

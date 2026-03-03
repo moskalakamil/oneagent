@@ -18,6 +18,20 @@ export function buildOpencodeConfig(existing: Record<string, unknown> | null): o
   };
 }
 
+export async function addOpenCodePlugin(root: string, id: string): Promise<void> {
+  const filePath = path.join(root, "opencode.json");
+  let existing: Record<string, unknown>;
+  try {
+    existing = JSON.parse(await fs.readFile(filePath, "utf-8")) as Record<string, unknown>;
+  } catch {
+    return; // no opencode.json — no-op
+  }
+  const current = Array.isArray(existing.plugin) ? (existing.plugin as string[]) : [];
+  if (current.includes(id)) return;
+  existing.plugin = [...current, id];
+  await fs.writeFile(filePath, JSON.stringify(existing, null, 2) + "\n");
+}
+
 export async function writeOpencode(root: string, _rules: RuleFile[]): Promise<void> {
   const existing = await readOpencode(root);
   const config = buildOpencodeConfig(existing);

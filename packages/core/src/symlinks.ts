@@ -127,6 +127,7 @@ export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
   await migrateAndRemoveDir(path.join(root, ".cursor/rules"), destRules, root);
   await migrateAndRemoveDir(path.join(root, ".claude/rules"), destRules, root);
   await migrateAndRemoveDir(path.join(root, ".windsurf/rules"), destRules, root);
+  await migrateAndRemoveDir(path.join(root, ".opencode/rules"), destRules, root);
   await migrateAndRemoveDir(path.join(root, ".agents/skills"), destSkills, root);
 }
 

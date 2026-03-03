@@ -1,0 +1,6 @@
+name: react-native
+description: React Native / Expo project starter
+skills: []
+plugins:
+  - target: claude
+    id: typescript-lsp@claude-plugins-official
