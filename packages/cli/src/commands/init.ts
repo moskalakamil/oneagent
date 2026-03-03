@@ -312,7 +312,6 @@ export default defineCommand({
             ...(pluginResult.installed.length > 0
               ? [`Installed ${pluginResult.installed.length} plugin(s): ${pluginResult.installed.map((p) => p.id).join(", ")}`]
               : []),
-            ...pluginResult.manual.map((p) => `Run in Cursor chat: /add-plugin ${p.id}`),
           ]
         : ["Created .oneagent/instructions.md"]),
       "Created .oneagent/rules/oneagent.md",
@@ -322,6 +321,13 @@ export default defineCommand({
         : []),
     ];
     note(lines.map((l) => `  • ${l}`).join("\n"), "Setup complete");
+
+    if (pluginResult.manual.length > 0) {
+      note(
+        `This template includes ${pluginResult.manual.length} Cursor plugin(s).\nTo install them, run each command in the Cursor chat:\n\n${pluginResult.manual.map((p) => `  /add-plugin ${p.id}`).join("\n")}`,
+        "Action required: Cursor plugins",
+      );
+    }
 
     outro("Run `oneagent status` to verify your setup.");
   },
