@@ -221,8 +221,10 @@ export default defineCommand({
     let importedContent = "";
 
     // Determine template arg: explicit value, flag without value (interactive), or not passed
+    // When --template is passed without a value, citty sets args.template to true (boolean) — treat as "no value"
     const templateFlagPresent = process.argv.includes("--template");
-    const templateArg = args.template || (templateFlagPresent ? await pickTemplateInteractively() : null);
+    const templateValue = typeof args.template === "string" && args.template.length > 0 ? args.template : null;
+    const templateArg = templateValue || (templateFlagPresent ? await pickTemplateInteractively() : null);
 
     if (templateArg) {
       const s = spinner();
