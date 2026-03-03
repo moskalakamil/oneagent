@@ -5,6 +5,7 @@
   "workspaces": ["packages/*", "examples/*"],
   "scripts": {
     "build": "bun run --filter='*' build",
+    "release": "bun ./scripts/release.ts",
     "test": "bun test --filter='*'",
     "typecheck": "bun run --filter='*' typecheck",
     "example:generate": "bun run --filter='@dotai/example-basic' generate",
