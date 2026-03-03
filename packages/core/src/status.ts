@@ -1,3 +1,4 @@
+import fs from "fs/promises";
 import type { Config, GeneratedFileCheck, OpenCodeCheck, RuleFile, StatusResult } from "./types.ts";
 import { activeTargets } from "./config.ts";
 import { readRules } from "./rules.ts";
@@ -10,7 +11,7 @@ export async function checkGeneratedFile(root: string, rule: RuleFile): Promise<
   const filePath = copilotFilePath(root, rule.name);
   const expected = buildCopilotContent(rule);
   try {
-    const content = await Bun.file(filePath).text();
+    const content = await fs.readFile(filePath, "utf-8");
     return { path: filePath, exists: true, upToDate: content === expected };
   } catch {
     return { path: filePath, exists: false, upToDate: false };
@@ -30,7 +31,7 @@ export async function checkCopilotPrompt(root: string, skill: import("./types.ts
   const filePath = copilotPromptFilePath(root, skill.name);
   const expected = buildCopilotPromptContent(skill);
   try {
-    const content = await Bun.file(filePath).text();
+    const content = await fs.readFile(filePath, "utf-8");
     return { path: filePath, exists: true, upToDate: content === expected };
   } catch {
     return { path: filePath, exists: false, upToDate: false };

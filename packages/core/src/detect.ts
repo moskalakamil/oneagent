@@ -22,7 +22,7 @@ export async function readDetectedFile(root: string, rel: string): Promise<Detec
       if (resolved.startsWith(path.join(root, ".one"))) return null;
     }
 
-    const content = await Bun.file(absolutePath).text();
+    const content = await fs.readFile(absolutePath, "utf-8");
     return {
       relativePath: rel,
       absolutePath,

@@ -16,7 +16,7 @@ export function parseFrontmatter(raw: string): { applyTo: string; content: strin
 }
 
 export async function readRuleFile(filePath: string): Promise<RuleFile> {
-  const raw = await Bun.file(filePath).text();
+  const raw = await fs.readFile(filePath, "utf-8");
   const { applyTo, content } = parseFrontmatter(raw);
   return { name: path.basename(filePath, ".md"), path: filePath, applyTo, content };
 }

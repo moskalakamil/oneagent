@@ -13,7 +13,7 @@ export function copilotFilePath(root: string, ruleName: string): string {
 export async function generateCopilotRule(root: string, rule: RuleFile): Promise<void> {
   const filePath = copilotFilePath(root, rule.name);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await Bun.write(filePath, buildCopilotContent(rule));
+  await fs.writeFile(filePath, buildCopilotContent(rule));
 }
 
 export async function generateCopilotRules(root: string, rules: RuleFile[]): Promise<void> {
@@ -34,7 +34,7 @@ export function copilotPromptFilePath(root: string, skillName: string): string {
 export async function generateCopilotSkill(root: string, skill: SkillFile): Promise<void> {
   const filePath = copilotPromptFilePath(root, skill.name);
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await Bun.write(filePath, buildCopilotPromptContent(skill));
+  await fs.writeFile(filePath, buildCopilotPromptContent(skill));
 }
 
 export async function generateCopilotSkills(root: string, skills: SkillFile[]): Promise<void> {

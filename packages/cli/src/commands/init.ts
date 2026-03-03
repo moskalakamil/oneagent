@@ -135,7 +135,7 @@ async function backupFiles(root: string, files: DetectedFile[]): Promise<void> {
   await fs.mkdir(backupDir, { recursive: true });
   for (const file of files) {
     const safeName = file.relativePath.replace(/\//g, "_");
-    await Bun.write(path.join(backupDir, safeName), file.content);
+    await fs.writeFile(path.join(backupDir, safeName), file.content);
   }
 }
 
@@ -219,9 +219,9 @@ export default defineCommand({
     } else {
       const instructionsContent =
         importedContent.trim() ? importedContent : "# Project Instructions\n\nAdd your AI instructions here.\n";
-      await Bun.write(path.join(root, ".oneagent/instructions.md"), instructionsContent);
+      await fs.writeFile(path.join(root, ".oneagent/instructions.md"), instructionsContent);
     }
-    await Bun.write(path.join(root, ".oneagent/rules/oneagent.md"), DOTAI_META_RULE);
+    await fs.writeFile(path.join(root, ".oneagent/rules/oneagent.md"), DOTAI_META_RULE);
     s.stop("Directory structure created.");
 
     const s2 = spinner();

@@ -29,7 +29,7 @@ export default defineCommand({
       await fs.mkdir(backupDir, { recursive: true });
       for (const file of mainFiles) {
         const safeName = file.relativePath.replace(/\//g, "_");
-        await Bun.write(path.join(backupDir, safeName), file.content);
+        await fs.writeFile(path.join(backupDir, safeName), file.content);
       }
     }
 

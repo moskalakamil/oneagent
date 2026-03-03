@@ -41,7 +41,7 @@ export async function detectGenerateCollisions(root: string, config: Config): Pr
       ...rules.map(async (rule): Promise<DetectedFile | null> => {
         const filePath = copilotFilePath(root, rule.name);
         try {
-          const content = await Bun.file(filePath).text();
+          const content = await fs.readFile(filePath, "utf-8");
           if (content === buildCopilotContent(rule)) return null;
           const stat = await fs.lstat(filePath);
           return { relativePath: path.relative(root, filePath), absolutePath: filePath, sizeBytes: stat.size, modifiedAt: stat.mtime, content };
@@ -50,7 +50,7 @@ export async function detectGenerateCollisions(root: string, config: Config): Pr
       ...skills.map(async (skill): Promise<DetectedFile | null> => {
         const filePath = copilotPromptFilePath(root, skill.name);
         try {
-          const content = await Bun.file(filePath).text();
+          const content = await fs.readFile(filePath, "utf-8");
           if (content === buildCopilotPromptContent(skill)) return null;
           const stat = await fs.lstat(filePath);
           return { relativePath: path.relative(root, filePath), absolutePath: filePath, sizeBytes: stat.size, modifiedAt: stat.mtime, content };

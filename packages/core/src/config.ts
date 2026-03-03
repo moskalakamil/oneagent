@@ -1,5 +1,6 @@
 import { parse, stringify } from "yaml";
 import path from "path";
+import fs from "fs/promises";
 import type { AgentTarget, Config } from "./types.ts";
 
 const CONFIG_REL = ".oneagent/config.yml";
@@ -15,15 +16,16 @@ export function makeTargets(...enabled: AgentTarget[]): Record<AgentTarget, bool
 }
 
 export async function configExists(root: string): Promise<boolean> {
-  return Bun.file(path.join(root, CONFIG_REL)).exists();
+  return fs.access(path.join(root, CONFIG_REL)).then(() => true, () => false);
 }
 
 export async function readConfig(root: string): Promise<Config> {
-  const content = await Bun.file(path.join(root, CONFIG_REL)).text();
+  const content = await fs.readFile(path.join(root, CONFIG_REL), "utf-8");
   return parse(content) as Config;
 }
 
 export async function writeConfig(root: string, config: Config): Promise<void> {
   const filePath = path.join(root, CONFIG_REL);
-  await Bun.write(filePath, stringify(config));
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, stringify(config));
 }

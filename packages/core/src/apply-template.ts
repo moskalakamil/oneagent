@@ -1,5 +1,9 @@
 import path from "path";
 import fs from "fs/promises";
+import { execFile } from "child_process";
+import { promisify } from "util";
+
+const execFileAsync = promisify(execFile);
 
 export interface TemplateDefinition {
   name: string;
@@ -17,10 +21,10 @@ export async function applyTemplateFiles(root: string, template: TemplateDefinit
   await fs.mkdir(path.join(oneagentDir, "rules"), { recursive: true });
   await fs.mkdir(path.join(oneagentDir, "skills"), { recursive: true });
 
-  await Bun.write(path.join(oneagentDir, "instructions.md"), template.instructions);
+  await fs.writeFile(path.join(oneagentDir, "instructions.md"), template.instructions);
 
   for (const rule of template.rules) {
-    await Bun.write(path.join(oneagentDir, "rules", `${rule.name}.md`), rule.content);
+    await fs.writeFile(path.join(oneagentDir, "rules", `${rule.name}.md`), rule.content);
   }
 }
 
@@ -33,7 +37,7 @@ export async function installTemplateSkills(
 ): Promise<void> {
   for (const identifier of template.skills) {
     try {
-      await Bun.$`bunx skills add ${identifier} --agent universal --yes`.cwd(root).quiet();
+      await execFileAsync("npx", ["skills", "add", identifier, "--agent", "universal", "--yes"], { cwd: root });
       onSkillInstalled?.(identifier);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

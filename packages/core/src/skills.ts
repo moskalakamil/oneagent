@@ -23,7 +23,7 @@ export function parseSkillFrontmatter(raw: string): { description: string; mode:
 }
 
 export async function readSkillFile(filePath: string): Promise<SkillFile> {
-  const raw = await Bun.file(filePath).text();
+  const raw = await fs.readFile(filePath, "utf-8");
   const { description, mode, content } = parseSkillFrontmatter(raw);
   return { name: path.basename(filePath, ".md"), path: filePath, description, mode, content };
 }

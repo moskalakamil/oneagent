@@ -147,15 +147,15 @@ async function migrateFilesFromDir(srcDir: string, destDir: string, root: string
     if (destExists) {
       // dest exists — compare content before deleting source
       const [srcContent, destContent] = await Promise.all([
-        Bun.file(srcFile).text(),
-        Bun.file(destFile).text(),
+        fs.readFile(srcFile, "utf-8"),
+        fs.readFile(destFile, "utf-8"),
       ]);
       if (srcContent !== destContent) {
         // Different content — backup source before deleting
         const backupDir = path.join(root, ".oneagent/backup");
         await fs.mkdir(backupDir, { recursive: true });
         const safeName = path.relative(root, srcFile).replace(/\//g, "_");
-        await Bun.write(path.join(backupDir, safeName), srcContent);
+        await fs.writeFile(path.join(backupDir, safeName), srcContent);
       }
       await fs.unlink(srcFile); // safe to delete — dest has the content (or backup was created)
     } else {
