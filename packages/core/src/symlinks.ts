@@ -132,7 +132,9 @@ export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
 }
 
 export async function createAllSymlinks(entries: SymlinkEntry[]): Promise<void> {
-  await Promise.all(entries.map((e) => createSymlink(e.symlinkPath, e.target)));
+  for (const e of entries) {
+    await createSymlink(e.symlinkPath, e.target);
+  }
 }
 
 export async function checkSymlink(entry: SymlinkEntry): Promise<SymlinkCheck> {
