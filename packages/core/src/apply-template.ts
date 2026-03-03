@@ -84,27 +84,40 @@ export async function applyTemplateFiles(root: string, template: TemplateDefinit
   }
 }
 
-// Phase 2: installs skills via `bunx skills add <identifier> --yes`.
+export interface SkillInstallResult {
+  installed: string[];
+  failed: Array<{ identifier: string; reason: string }>;
+}
+
+// Phase 2: installs skills via `npx skills add <identifier> --yes`.
 // Call this AFTER generate() so agent directories (symlinks) already exist.
+// Never throws — failed skills are collected and returned in the result.
 export async function installTemplateSkills(
   root: string,
   template: TemplateDefinition,
   onSkillInstalled?: (identifier: string) => void,
-): Promise<void> {
+): Promise<SkillInstallResult> {
+  const installed: string[] = [];
+  const failed: Array<{ identifier: string; reason: string }> = [];
+
   for (const identifier of template.skills) {
     try {
       await execFileAsync("npx", ["skills", "add", identifier, "--agent", "universal", "--yes"], { cwd: root });
+      installed.push(identifier);
       onSkillInstalled?.(identifier);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`Failed to install skill "${identifier}": ${message}`);
+      const reason = err instanceof Error ? err.message : String(err);
+      failed.push({ identifier, reason });
     }
   }
+
+  return { installed, failed };
 }
 
 export interface PluginInstallResult {
   installed: TemplatePlugin[];
   manual: TemplatePlugin[];
+  failed: Array<{ plugin: TemplatePlugin; reason: string }>;
 }
 
 // Phase 3: installs plugins for active targets. Call AFTER generate().
@@ -113,48 +126,51 @@ export interface PluginInstallResult {
 // - opencode → adds id to plugin[] in opencode.json
 // - cursor  → added to manual list (no CLI yet — user runs /add-plugin in chat)
 // - windsurf → skipped (no marketplace)
+// Never throws — failed plugins are collected and returned in the result.
 export async function installTemplatePlugins(
   root: string,
   template: TemplateDefinition,
   activeTargets: AgentTarget[],
-  onPluginInstalled?: (plugin: TemplatePlugin) => void,
 ): Promise<PluginInstallResult> {
   const installed: TemplatePlugin[] = [];
   const manual: TemplatePlugin[] = [];
+  const failed: Array<{ plugin: TemplatePlugin; reason: string }> = [];
 
   for (const plugin of template.plugins) {
     if (!activeTargets.includes(plugin.target)) continue;
 
-    switch (plugin.target) {
-      case "claude":
-        await execFileAsync("claude", ["plugin", "install", plugin.id], { cwd: root });
-        installed.push(plugin);
-        onPluginInstalled?.(plugin);
-        break;
+    try {
+      switch (plugin.target) {
+        case "claude":
+          await execFileAsync("claude", ["plugin", "install", plugin.id], { cwd: root });
+          installed.push(plugin);
+          break;
 
-      case "copilot":
-        await execFileAsync("copilot", ["plugin", "install", plugin.id], { cwd: root });
-        installed.push(plugin);
-        onPluginInstalled?.(plugin);
-        break;
+        case "copilot":
+          await execFileAsync("copilot", ["plugin", "install", plugin.id], { cwd: root });
+          installed.push(plugin);
+          break;
 
-      case "opencode":
-        await addOpenCodePlugin(root, plugin.id);
-        installed.push(plugin);
-        onPluginInstalled?.(plugin);
-        break;
+        case "opencode":
+          await addOpenCodePlugin(root, plugin.id);
+          installed.push(plugin);
+          break;
 
-      case "cursor":
-        manual.push(plugin);
-        break;
+        case "cursor":
+          manual.push(plugin);
+          break;
 
-      case "windsurf":
-        // No marketplace yet — skip silently
-        break;
+        case "windsurf":
+          // No marketplace yet — skip silently
+          break;
+      }
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      failed.push({ plugin, reason });
     }
   }
 
-  return { installed, manual };
+  return { installed, manual, failed };
 }
 
 // Fetches a template from a GitHub URL.

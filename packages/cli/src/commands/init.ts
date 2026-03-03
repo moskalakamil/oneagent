@@ -8,6 +8,7 @@ import {
   text,
   spinner,
   note,
+  log,
   isCancel,
 } from "@clack/prompts";
 import path from "path";
@@ -27,6 +28,7 @@ import {
   installTemplatePlugins,
   fetchTemplateFromGitHub,
   type PluginInstallResult,
+  type SkillInstallResult,
   AGENT_DEFINITIONS,
   type AgentTarget,
   type Config,
@@ -275,28 +277,34 @@ export default defineCommand({
     await generate(root, config);
     s2.stop("Done.");
 
-    const fetchedSkills: string[] = [];
+    let skillResult: SkillInstallResult = { installed: [], failed: [] };
     if (template && template.skills.length > 0) {
       const s3 = spinner();
       s3.start("Installing skills...");
-      await installTemplateSkills(root, template, (id) => fetchedSkills.push(id));
-      s3.stop(`Installed ${fetchedSkills.length} skill(s).`);
+      skillResult = await installTemplateSkills(root, template);
+      s3.stop(`Installed ${skillResult.installed.length} skill(s).`);
+      for (const f of skillResult.failed) {
+        log.warn(`Skill "${f.identifier}" could not be installed and was skipped.`);
+      }
     }
 
-    let pluginResult: PluginInstallResult = { installed: [], manual: [] };
+    let pluginResult: PluginInstallResult = { installed: [], manual: [], failed: [] };
     if (template && template.plugins.length > 0) {
       const s4 = spinner();
       s4.start("Installing plugins...");
       pluginResult = await installTemplatePlugins(root, template, selectedTargets);
       s4.stop(`Installed ${pluginResult.installed.length} plugin(s).`);
+      for (const f of pluginResult.failed) {
+        log.warn(`Plugin "${f.plugin.id}" (${f.plugin.target}) could not be installed and was skipped.`);
+      }
     }
 
     const lines = [
       ...(template
         ? [
             `Template: ${template.name} — ${template.description}`,
-            ...(fetchedSkills.length > 0
-              ? [`Fetched ${fetchedSkills.length} skill(s): ${fetchedSkills.join(", ")}`]
+            ...(skillResult.installed.length > 0
+              ? [`Installed ${skillResult.installed.length} skill(s): ${skillResult.installed.join(", ")}`]
               : []),
             ...(template.rules.length > 0
               ? [`Added ${template.rules.length} rule(s) from template`]
