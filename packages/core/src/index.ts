@@ -8,3 +8,4 @@ export * from "./copilot.ts";
 export * from "./opencode.ts";
 export * from "./generate.ts";
 export * from "./status.ts";
+export * from "./apply-template.ts";

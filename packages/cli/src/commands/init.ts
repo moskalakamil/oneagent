@@ -21,10 +21,18 @@ import {
   generate,
   migrateRuleAndSkillFiles,
   removeDeprecatedFiles,
+  applyTemplateFiles,
+  installTemplateSkills,
+  fetchTemplateFromGitHub,
   type AgentTarget,
   type Config,
   type DetectedFile,
+  type TemplateDefinition,
 } from "@moskala/oneagent-core";
+import {
+  resolveBuiltinTemplate,
+  BUILTIN_TEMPLATE_NAMES,
+} from "@moskala/oneagent-templates";
 
 const DOTAI_META_RULE = `---
 applyTo: "**"
@@ -131,12 +139,33 @@ async function backupFiles(root: string, files: DetectedFile[]): Promise<void> {
   }
 }
 
+async function resolveTemplate(templateArg: string): Promise<TemplateDefinition> {
+  // GitHub URL
+  if (templateArg.startsWith("https://github.com/")) {
+    return fetchTemplateFromGitHub(templateArg);
+  }
+
+  // Builtin name
+  const builtin = await resolveBuiltinTemplate(templateArg);
+  if (builtin) return builtin;
+
+  throw new Error(
+    `Unknown template "${templateArg}". Use one of: ${BUILTIN_TEMPLATE_NAMES.join(", ")} — or a GitHub URL.`,
+  );
+}
+
 export default defineCommand({
   meta: {
     name: "init",
     description: "Initialize oneagent in the current project",
   },
-  async run() {
+  args: {
+    template: {
+      type: "string",
+      description: `Template to use: builtin name (${BUILTIN_TEMPLATE_NAMES.join("/")}) or GitHub URL`,
+    },
+  },
+  async run({ args }) {
     intro("oneagent init");
 
     const root = process.cwd();
@@ -148,7 +177,26 @@ export default defineCommand({
     }
 
     const detected = await detectExistingFiles(root);
-    const content = await chooseContent(detected);
+
+    let template: TemplateDefinition | null = null;
+    let importedContent = "";
+
+    if (args.template) {
+      const s = spinner();
+      s.start(`Resolving template "${args.template}"...`);
+      try {
+        template = await resolveTemplate(args.template);
+        s.stop(`Template "${template.name}" ready.`);
+      } catch (err) {
+        s.stop("Failed.");
+        const message = err instanceof Error ? err.message : String(err);
+        note(message, "Error");
+        process.exit(1);
+      }
+    } else {
+      importedContent = await chooseContent(detected);
+    }
+
     const selectedTargets = await pickTargets();
 
     const s = spinner();
@@ -166,11 +214,14 @@ export default defineCommand({
     const config: Config = { version: 1, targets: makeTargets(...selectedTargets) };
     await writeConfig(root, config);
 
-    const instructionsContent =
-      content.trim() ? content : "# Project Instructions\n\nAdd your AI instructions here.\n";
-    await Bun.write(path.join(root, ".oneagent/instructions.md"), instructionsContent);
+    if (template) {
+      await applyTemplateFiles(root, template);
+    } else {
+      const instructionsContent =
+        importedContent.trim() ? importedContent : "# Project Instructions\n\nAdd your AI instructions here.\n";
+      await Bun.write(path.join(root, ".oneagent/instructions.md"), instructionsContent);
+    }
     await Bun.write(path.join(root, ".oneagent/rules/oneagent.md"), DOTAI_META_RULE);
-
     s.stop("Directory structure created.");
 
     const s2 = spinner();
@@ -178,8 +229,26 @@ export default defineCommand({
     await generate(root, config);
     s2.stop("Done.");
 
+    const fetchedSkills: string[] = [];
+    if (template && template.skills.length > 0) {
+      const s3 = spinner();
+      s3.start("Installing skills...");
+      await installTemplateSkills(root, template, (id) => fetchedSkills.push(id));
+      s3.stop(`Installed ${fetchedSkills.length} skill(s).`);
+    }
+
     const lines = [
-      "Created .oneagent/instructions.md",
+      ...(template
+        ? [
+            `Template: ${template.name} — ${template.description}`,
+            ...(fetchedSkills.length > 0
+              ? [`Fetched ${fetchedSkills.length} skill(s): ${fetchedSkills.join(", ")}`]
+              : []),
+            ...(template.rules.length > 0
+              ? [`Added ${template.rules.length} rule(s) from template`]
+              : []),
+          ]
+        : ["Created .oneagent/instructions.md"]),
       "Created .oneagent/rules/oneagent.md",
       ...selectedTargets.map((t) => `Configured: ${t}`),
       ...(detected.length > 0

@@ -19,11 +19,13 @@
     "src"
   ],
   "scripts": {
+    "build": "bun ./scripts/build.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@clack/prompts": "latest",
     "@moskala/oneagent-core": "workspace:*",
+    "@moskala/oneagent-templates": "workspace:*",
     "citty": "latest"
   },
   "devDependencies": {
