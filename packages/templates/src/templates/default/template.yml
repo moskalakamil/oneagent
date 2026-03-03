@@ -1,3 +1,38 @@
 name: default
 description: General programming starter
-skills: []
+skills:
+  - repo: https://github.com/vercel-labs/skills
+    skill: find-skills
+  - repo: https://github.com/anthropics/skills
+    skill: skill-creator
+  - repo: https://github.com/github/awesome-copilot
+    skill: conventional-commit
+  - repo: https://github.com/oldwinter/skills
+    skill: github-cli
+  - repo: https://github.com/supercent-io/skills-template
+    skill: code-review
+  - repo: https://github.com/vercel-labs/agent-skills
+    skill: web-design-guidelines
+  - repo: https://github.com/coreyhaines31/marketingskills
+    skill: copywriting
+plugins:
+  - target: claude
+    id: context7@claude-plugins-official
+  - target: claude
+    id: superpowers@claude-plugins-official
+  - target: claude
+    id: code-simplifier@claude-plugins-official
+  - target: claude
+    id: security-guidance@claude-plugins-official
+  - target: claude
+    id: claude-md-management@claude-plugins-official
+  - target: cursor
+    id: context7-plugin
+  - target: cursor
+    id: superpowers
+  - target: cursor
+    id: parallel
+  - target: cursor
+    id: runlayer
+  - target: cursor
+    id: cursor-team-kit

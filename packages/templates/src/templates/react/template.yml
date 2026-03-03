@@ -3,10 +3,56 @@ description: React / Next.js project starter
 skills:
   - repo: https://github.com/vercel-labs/skills
     skill: find-skills
-  - repo: https://github.com/vercel-labs/agent-skills 
+  - repo: https://github.com/anthropics/skills
+    skill: skill-creator
+  - repo: https://github.com/github/awesome-copilot
+    skill: conventional-commit
+  - repo: https://github.com/oldwinter/skills
+    skill: github-cli
+  - repo: https://github.com/supercent-io/skills-template
+    skill: code-review
+  - repo: https://github.com/vercel-labs/agent-skills
+    skill: web-design-guidelines
+  - repo: https://github.com/coreyhaines31/marketingskills
+    skill: copywriting
+  - repo: https://github.com/anthropics/skills
+    skill: frontend-design
+  - repo: https://github.com/vercel-labs/agent-skills
     skill: vercel-react-best-practices
+  - repo: https://github.com/vercel-labs/agent-skills
+    skill: vercel-composition-patterns
+  - repo: https://github.com/obra/superpowers
+    skill: brainstorming
+  - repo: https://github.com/coreyhaines31/marketingskills
+    skill: seo-audit
+  - repo: https://github.com/vercel-labs/next-skills
+    skill: next-best-practices
+  - repo: https://github.com/wshobson/agents
+    skill: react-state-management
 plugins:
   - target: claude
+    id: context7@claude-plugins-official
+  - target: claude
+    id: superpowers@claude-plugins-official
+  - target: claude
+    id: code-simplifier@claude-plugins-official
+  - target: claude
+    id: security-guidance@claude-plugins-official
+  - target: claude
+    id: claude-md-management@claude-plugins-official
+  - target: claude
+    id: frontend-design@claude-plugins-official
+  - target: claude
     id: typescript-lsp@claude-plugins-official
+  - target: cursor
+    id: context7-plugin
+  - target: cursor
+    id: superpowers
+  - target: cursor
+    id: parallel
+  - target: cursor
+    id: runlayer
+  - target: cursor
+    id: cursor-team-kit
   - target: cursor
     id: vercel
