@@ -185,23 +185,36 @@ async function fetchText(url: string): Promise<string> {
   return response.text();
 }
 
-function githubUrlToRawBase(url: string): string {
-  // Handle https://github.com/owner/repo/tree/branch or https://github.com/owner/repo
-  const match = url.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\/tree\/([^/]+))?(?:\/.*)?$/);
+interface GitHubUrlParts {
+  owner: string;
+  repo: string;
+  branch: string;
+  subdir: string; // "" for root, "path/to/dir" for subdirectories
+}
+
+function parseGitHubUrl(url: string): GitHubUrlParts {
+  // Supports:
+  //   https://github.com/owner/repo
+  //   https://github.com/owner/repo/tree/branch
+  //   https://github.com/owner/repo/tree/branch/path/to/subdir
+  const match = url.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\/tree\/([^/]+?)(?:\/(.+))?)?(?:\/)?$/);
   if (!match) {
     throw new Error(`Invalid GitHub URL: "${url}". Expected format: https://github.com/owner/repo`);
   }
-  const [, owner, repo, branch = "main"] = match;
-  return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}`;
+  const [, owner, repo, branch = "main", subdir = ""] = match;
+  return { owner: owner!, repo: repo!, branch, subdir };
+}
+
+function githubUrlToRawBase(url: string): string {
+  const { owner, repo, branch, subdir } = parseGitHubUrl(url);
+  const base = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}`;
+  return subdir ? `${base}/${subdir}` : base;
 }
 
 async function fetchGitHubRules(repoUrl: string): Promise<Array<{ name: string; content: string }>> {
-  // Parse owner/repo from URL
-  const match = repoUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\/tree\/([^/]+))?(?:\/.*)?$/);
-  if (!match) return [];
-  const [, owner, repo, branch = "main"] = match;
-
-  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/rules?ref=${branch}`;
+  const { owner, repo, branch, subdir } = parseGitHubUrl(repoUrl);
+  const rulesPath = subdir ? `${subdir}/rules` : "rules";
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${rulesPath}?ref=${branch}`;
   try {
     const response = await fetch(apiUrl, {
       headers: { Accept: "application/vnd.github.v3+json" },

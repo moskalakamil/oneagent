@@ -46,3 +46,14 @@ export async function resolveBuiltinTemplate(name: string): Promise<TemplateDefi
 }
 
 export const BUILTIN_TEMPLATE_NAMES: readonly string[] = TEMPLATE_NAMES;
+
+export interface BuiltinTemplateMeta {
+  name: string;
+  description: string;
+}
+
+export const BUILTIN_TEMPLATE_META: BuiltinTemplateMeta[] = [
+  { name: "default", description: "General programming starter" },
+  { name: "react", description: "React / Next.js project starter" },
+  { name: "react-native", description: "React Native / Expo project starter" },
+];

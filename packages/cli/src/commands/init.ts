@@ -5,6 +5,7 @@ import {
   confirm,
   multiselect,
   select,
+  text,
   spinner,
   note,
   isCancel,
@@ -35,6 +36,7 @@ import {
 import {
   resolveBuiltinTemplate,
   BUILTIN_TEMPLATE_NAMES,
+  BUILTIN_TEMPLATE_META,
 } from "@moskala/oneagent-templates";
 
 const DOTAI_META_RULE = `---
@@ -148,6 +150,34 @@ async function backupFiles(root: string, files: DetectedFile[]): Promise<void> {
   }
 }
 
+async function pickTemplateInteractively(): Promise<string> {
+  const result = await select({
+    message: "Which template would you like to use?",
+    options: [
+      ...BUILTIN_TEMPLATE_META.map((t) => ({
+        value: t.name,
+        label: t.name,
+        hint: t.description,
+      })),
+      { value: "__github__", label: "Custom GitHub template", hint: "Enter a GitHub URL" },
+    ],
+  });
+
+  if (isCancel(result)) cancelAndExit();
+
+  if (result === "__github__") {
+    const url = await text({
+      message: "GitHub URL:",
+      placeholder: "https://github.com/owner/repo",
+      validate: (v) => (!v || !v.startsWith("https://github.com/") ? "Must be a GitHub URL" : undefined),
+    });
+    if (isCancel(url)) cancelAndExit();
+    return url as string;
+  }
+
+  return result as string;
+}
+
 async function resolveTemplate(templateArg: string): Promise<TemplateDefinition> {
   // GitHub URL
   if (templateArg.startsWith("https://github.com/")) {
@@ -190,11 +220,15 @@ export default defineCommand({
     let template: TemplateDefinition | null = null;
     let importedContent = "";
 
-    if (args.template) {
+    // Determine template arg: explicit value, flag without value (interactive), or not passed
+    const templateFlagPresent = process.argv.includes("--template");
+    const templateArg = args.template || (templateFlagPresent ? await pickTemplateInteractively() : null);
+
+    if (templateArg) {
       const s = spinner();
-      s.start(`Resolving template "${args.template}"...`);
+      s.start(`Resolving template "${templateArg}"...`);
       try {
-        template = await resolveTemplate(args.template);
+        template = await resolveTemplate(templateArg);
         s.stop(`Template "${template.name}" ready.`);
       } catch (err) {
         s.stop("Failed.");
