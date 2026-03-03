@@ -1,4 +1,5 @@
 export * from "./types.ts";
+export * from "./agents.ts";
 export * from "./config.ts";
 export * from "./detect.ts";
 export * from "./rules.ts";

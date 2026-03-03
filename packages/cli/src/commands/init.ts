@@ -24,6 +24,7 @@ import {
   applyTemplateFiles,
   installTemplateSkills,
   fetchTemplateFromGitHub,
+  AGENT_DEFINITIONS,
   type AgentTarget,
   type Config,
   type DetectedFile,
@@ -110,18 +111,24 @@ async function chooseContent(detected: DetectedFile[]): Promise<string> {
   return detected[index]!.content;
 }
 
-async function pickTargets(): Promise<AgentTarget[]> {
+async function detectPresentTargets(root: string): Promise<AgentTarget[]> {
+  const results = await Promise.all(
+    AGENT_DEFINITIONS.map(async (def) => {
+      for (const indicator of def.detectIndicators) {
+        try { await fs.access(path.join(root, indicator)); return def.target; } catch {}
+      }
+      return null;
+    }),
+  );
+  return results.filter((t): t is AgentTarget => t !== null);
+}
+
+async function pickTargets(initialValues: AgentTarget[]): Promise<AgentTarget[]> {
   const result = await multiselect<AgentTarget>({
     message: `Which AI agents do you want to support?
 \x1b[90m · Space to toggle · Enter to confirm\x1b[39m`,
-    options: [
-      { value: "claude", label: "Claude Code", hint: "CLAUDE.md + .claude/rules/" },
-      { value: "cursor", label: "Cursor", hint: "AGENTS.md + .cursor/rules/" },
-      { value: "windsurf", label: "Windsurf", hint: ".windsurfrules + .windsurf/rules/" },
-      { value: "opencode", label: "OpenCode", hint: "AGENTS.md + opencode.json" },
-      { value: "copilot", label: "GitHub Copilot", hint: ".github/instructions/*.instructions.md" },
-    ],
-    initialValues: ["claude"],
+    options: AGENT_DEFINITIONS.map((d) => ({ value: d.target, label: d.displayName, hint: d.hint })),
+    initialValues,
     required: true,
   });
 
@@ -197,7 +204,8 @@ export default defineCommand({
       importedContent = await chooseContent(detected);
     }
 
-    const selectedTargets = await pickTargets();
+    const presentTargets = await detectPresentTargets(root);
+    const selectedTargets = await pickTargets(presentTargets);
 
     const s = spinner();
     s.start("Setting up .oneagent/ directory...");

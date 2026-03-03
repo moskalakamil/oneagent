@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs/promises";
 import type { DetectedFile } from "./types.ts";
+import { AGENT_DEFINITIONS } from "./agents.ts";
 
 export const AGENT_FILES = [
   "CLAUDE.md",
@@ -46,7 +47,7 @@ export function filesHaveSameContent(files: DetectedFile[]): boolean {
   return files.every((f) => f.content === first);
 }
 
-const DEPRECATED_FILES = [".cursorrules"];
+const DEPRECATED_FILES = AGENT_DEFINITIONS.flatMap((d) => d.deprecatedFiles ?? []);
 
 export async function removeDeprecatedFiles(root: string): Promise<void> {
   for (const rel of DEPRECATED_FILES) {

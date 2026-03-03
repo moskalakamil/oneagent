@@ -93,11 +93,11 @@ describe("generate", () => {
     expect(stat.isSymbolicLink()).toBe(true);
   });
 
-  test("creates .windsurfrules symlink for windsurf target", async () => {
+  test("creates AGENTS.md symlink for windsurf target", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
     await generate(dir, makeConfig("windsurf"));
-    const stat = await lstat(join(dir, ".windsurfrules"));
+    const stat = await lstat(join(dir, "AGENTS.md"));
     expect(stat.isSymbolicLink()).toBe(true);
   });
 

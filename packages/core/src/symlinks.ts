@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs/promises";
-import type { AgentTarget, RuleFile, SymlinkCheck, SymlinkEntry } from "./types.ts";
+import type { AgentTarget, SymlinkCheck, SymlinkEntry } from "./types.ts";
+import { AGENT_DEFINITIONS } from "./agents.ts";
 
 export async function ensureDir(dirPath: string): Promise<void> {
   await fs.mkdir(dirPath, { recursive: true });
@@ -25,26 +26,8 @@ export function buildMainSymlinks(root: string, targets: AgentTarget[]): Symlink
   const seen = new Map<string, SymlinkEntry>();
 
   for (const target of targets) {
-    let symlinkPath: string;
-
-    switch (target) {
-      case "claude":
-        symlinkPath = path.join(root, "CLAUDE.md");
-        break;
-      case "cursor":
-        symlinkPath = path.join(root, "AGENTS.md");
-        break;
-      case "windsurf":
-        symlinkPath = path.join(root, ".windsurfrules");
-        break;
-      case "opencode":
-        symlinkPath = path.join(root, "AGENTS.md");
-        break;
-      case "copilot":
-        symlinkPath = path.join(root, ".github/copilot-instructions.md");
-        break;
-    }
-
+    const def = AGENT_DEFINITIONS.find((d) => d.target === target)!;
+    const symlinkPath = path.join(root, def.mainFile);
     if (!seen.has(symlinkPath)) {
       seen.set(symlinkPath, {
         symlinkPath,
@@ -59,38 +42,22 @@ export function buildMainSymlinks(root: string, targets: AgentTarget[]): Symlink
 
 export function buildRulesSymlinks(root: string, targets: AgentTarget[]): SymlinkEntry[] {
   const targetAbs = path.join(root, ".oneagent/rules");
-  const agentDirs: Partial<Record<AgentTarget, string>> = {
-    claude: path.join(root, ".claude/rules"),
-    cursor: path.join(root, ".cursor/rules"),
-    windsurf: path.join(root, ".windsurf/rules"),
-  };
-
-  return (Object.entries(agentDirs) as [AgentTarget, string][])
-    .filter(([target]) => targets.includes(target))
-    .map(([, dir]) => ({
-      symlinkPath: dir,
-      target: relativeTarget(dir, targetAbs),
-      label: path.relative(root, dir),
-    }));
+  return AGENT_DEFINITIONS
+    .filter((d) => targets.includes(d.target) && d.rulesDir)
+    .map((d) => {
+      const symlinkPath = path.join(root, d.rulesDir!);
+      return { symlinkPath, target: relativeTarget(symlinkPath, targetAbs), label: d.rulesDir! };
+    });
 }
 
-// Creates whole-directory symlinks: .claude/skills → .oneagent/skills, .cursor/skills → .oneagent/skills
 export function buildSkillSymlinks(root: string, targets: AgentTarget[]): SymlinkEntry[] {
   const targetAbs = path.join(root, ".oneagent/skills");
-  const agentDirs: Partial<Record<AgentTarget, string>> = {
-    claude: path.join(root, ".claude/skills"),
-    cursor: path.join(root, ".cursor/skills"),
-    windsurf: path.join(root, ".windsurf/skills"),
-    copilot: path.join(root, ".github/skills"),
-  };
-
-  return (Object.entries(agentDirs) as [AgentTarget, string][])
-    .filter(([target]) => targets.includes(target))
-    .map(([, dir]) => ({
-      symlinkPath: dir,
-      target: relativeTarget(dir, targetAbs),
-      label: path.relative(root, dir),
-    }));
+  return AGENT_DEFINITIONS
+    .filter((d) => targets.includes(d.target) && d.skillsDir)
+    .map((d) => {
+      const symlinkPath = path.join(root, d.skillsDir!);
+      return { symlinkPath, target: relativeTarget(symlinkPath, targetAbs), label: d.skillsDir! };
+    });
 }
 
 export function buildAgentsDirSymlinks(root: string): SymlinkEntry[] {
