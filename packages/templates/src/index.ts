@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs/promises";
 import { fileURLToPath } from "url";
-import { type TemplatePlugin, type TemplateDefinition, parsePluginsFromYaml } from "@moskala/oneagent-core";
+import { type TemplatePlugin, type TemplateDefinition, parseTemplateYaml } from "@moskala/oneagent-core";
 
 export type { TemplatePlugin, TemplateDefinition };
 
@@ -19,21 +19,7 @@ async function loadTemplate(name: BuiltinTemplateName): Promise<TemplateDefiniti
     fs.readFile(path.join(templateDir, "instructions.md"), "utf-8"),
   ]);
 
-  // Minimal YAML parsing for our simple structure
-  const descMatch = yamlText.match(/^description:\s*(.+)$/m);
-  const description = descMatch?.[1]?.trim() ?? "";
-
-  const skills: string[] = [];
-  const skillsBlockMatch = yamlText.match(/^skills:\s*\n((?:  - .+\n?)*)/m);
-  if (skillsBlockMatch) {
-    const lines = skillsBlockMatch[1]!.split("\n").filter(Boolean);
-    for (const line of lines) {
-      const skill = line.replace(/^\s*-\s*/, "").trim();
-      if (skill) skills.push(skill);
-    }
-  }
-
-  const plugins = parsePluginsFromYaml(yamlText);
+  const { description, skills, plugins } = parseTemplateYaml(yamlText, name);
 
   const rulesDir = path.join(templateDir, "rules");
   let rules: Array<{ name: string; content: string }> = [];

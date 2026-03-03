@@ -21,6 +21,30 @@ export interface TemplateDefinition {
   rules: Array<{ name: string; content: string }>;
 }
 
+// Parses name, description, skills and plugins from a template.yml string.
+// This is the single source of truth for the template.yml format — used by
+// both builtin template loading and GitHub URL template fetching.
+export function parseTemplateYaml(yamlText: string, fallbackName = "custom"): Pick<TemplateDefinition, "name" | "description" | "skills" | "plugins"> {
+  const nameMatch = yamlText.match(/^name:\s*(.+)$/m);
+  const name = nameMatch?.[1]?.trim() ?? fallbackName;
+
+  const descMatch = yamlText.match(/^description:\s*(.+)$/m);
+  const description = descMatch?.[1]?.trim() ?? "";
+
+  const skills: string[] = [];
+  const skillsBlockMatch = yamlText.match(/^skills:\s*\n((?:  - .+\n?)*)/m);
+  if (skillsBlockMatch) {
+    const lines = skillsBlockMatch[1]!.split("\n").filter(Boolean);
+    for (const line of lines) {
+      const skill = line.replace(/^\s*-\s*/, "").trim();
+      if (skill) skills.push(skill);
+    }
+  }
+
+  const plugins = parsePluginsFromYaml(yamlText);
+  return { name, description, skills, plugins };
+}
+
 // Parses the `plugins:` block from a template.yml string.
 // Expects entries in the format:
 //   plugins:
@@ -145,23 +169,7 @@ export async function fetchTemplateFromGitHub(url: string): Promise<TemplateDefi
     fetchText(`${rawBase}/instructions.md`),
   ]);
 
-  const descMatch = yamlText.match(/^description:\s*(.+)$/m);
-  const description = descMatch?.[1]?.trim() ?? "";
-
-  const nameMatch = yamlText.match(/^name:\s*(.+)$/m);
-  const name = nameMatch?.[1]?.trim() ?? "custom";
-
-  const skills: string[] = [];
-  const skillsBlockMatch = yamlText.match(/^skills:\s*\n((?:  - .+\n?)*)/m);
-  if (skillsBlockMatch) {
-    const lines = skillsBlockMatch[1]!.split("\n").filter(Boolean);
-    for (const line of lines) {
-      const skill = line.replace(/^\s*-\s*/, "").trim();
-      if (skill) skills.push(skill);
-    }
-  }
-
-  const plugins = parsePluginsFromYaml(yamlText);
+  const { name, description, skills, plugins } = parseTemplateYaml(yamlText);
 
   // Try to list rules via GitHub API
   const rules = await fetchGitHubRules(url);
