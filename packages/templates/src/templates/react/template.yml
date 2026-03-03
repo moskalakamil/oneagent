@@ -56,3 +56,11 @@ plugins:
     id: cursor-team-kit
   - target: cursor
     id: vercel
+  - target: opencode
+    id: oh-my-opencode
+  - target: opencode
+    id: "@plannotator/opencode"
+  - target: opencode
+    id: "@openspoon/subtask2"
+  - target: opencode
+    id: micode
