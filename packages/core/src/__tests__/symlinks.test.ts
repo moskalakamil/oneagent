@@ -3,7 +3,7 @@ import { mkdtemp, lstat, mkdir, writeFile, symlink, access } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createSymlink, buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildAgentsDirSymlinks, checkSymlink, migrateRuleAndSkillFiles } from "../symlinks.ts";
-import type { RuleFile, SkillFile } from "../types.ts";
+import type { RuleFile } from "../types.ts";
 
 async function mkTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "dotai-test-"));
@@ -78,29 +78,22 @@ describe("buildRulesSymlinks", () => {
 });
 
 describe("buildSkillSymlinks", () => {
-  const skills: SkillFile[] = [
-    { name: "review", path: "/root/.oneagent/skills/review.md", description: "Review code", mode: "ask", content: "" },
-  ];
-
-  test("creates .claude/commands/ entries for claude target", () => {
-    const entries = buildSkillSymlinks("/root", ["claude"], skills);
-    expect(entries.some((e) => e.symlinkPath.includes(".claude/commands/review.md"))).toBe(true);
+  test("creates directory symlinks for claude and cursor targets", () => {
+    const entries = buildSkillSymlinks("/root", ["claude", "cursor"]);
+    expect(entries.some((e) => e.symlinkPath === "/root/.claude/skills")).toBe(true);
+    expect(entries.some((e) => e.symlinkPath === "/root/.cursor/skills")).toBe(true);
   });
 
-  test("returns empty array when claude is not a target", () => {
-    const entries = buildSkillSymlinks("/root", ["cursor", "copilot"], skills);
+  test("returns empty array when no relevant targets", () => {
+    const entries = buildSkillSymlinks("/root", ["opencode"]);
     expect(entries.length).toBe(0);
   });
 
-  test("returns empty array when no skills", () => {
-    const entries = buildSkillSymlinks("/root", ["claude"], []);
-    expect(entries.length).toBe(0);
-  });
-
-  test("all entries have a relative target path", () => {
-    const entries = buildSkillSymlinks("/root", ["claude"], skills);
+  test("all entries have a relative target pointing to .oneagent/skills", () => {
+    const entries = buildSkillSymlinks("/root", ["claude", "cursor"]);
     for (const e of entries) {
       expect(e.target.startsWith("/")).toBe(false);
+      expect(e.target).toBe("../.oneagent/skills");
     }
   });
 });
@@ -117,9 +110,11 @@ describe("buildAgentsDirSymlinks", () => {
     expect(entries[0]!.target.startsWith("/")).toBe(false);
   });
 
-  test("target resolves to .oneagent/skills", () => {
+  test("all targets resolve to .oneagent/skills", () => {
     const entries = buildAgentsDirSymlinks("/root");
-    expect(entries[0]!.target).toBe("../.oneagent/skills");
+    for (const entry of entries) {
+      expect(entry.target).toBe("../.oneagent/skills");
+    }
   });
 });
 

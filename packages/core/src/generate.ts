@@ -23,7 +23,7 @@ export async function detectGenerateCollisions(root: string, config: Config): Pr
   // 2. Rule/skill symlink paths
   const ruleSkillEntries = [
     ...buildRulesSymlinks(root, targets, rules),
-    ...buildSkillSymlinks(root, targets, skills),
+    ...buildSkillSymlinks(root, targets),
     // .agents/skills skipped — handled by migrateAgentsSkillsDir
   ];
 
@@ -70,10 +70,11 @@ export async function generate(root: string, config: Config): Promise<void> {
   const [rules, skills] = await Promise.all([readRules(root), readSkills(root)]);
   const targets = activeTargets(config);
 
+  await migrateRuleAndSkillFiles(root);
+
   const mainSymlinks = buildMainSymlinks(root, targets);
   const rulesSymlinks = buildRulesSymlinks(root, targets, rules);
-  const skillSymlinks = buildSkillSymlinks(root, targets, skills);
-  await migrateRuleAndSkillFiles(root);
+  const skillSymlinks = await buildSkillSymlinks(root, targets);
   await createAllSymlinks([...mainSymlinks, ...rulesSymlinks, ...skillSymlinks, ...buildAgentsDirSymlinks(root)]);
 
   if (targets.includes("copilot")) {

@@ -12,6 +12,7 @@
     "example:clear": "bun run --filter='@dotai/example-basic' clear"
   },
   "devDependencies": {
+    "@clack/prompts": "latest",
     "@types/bun": "latest",
     "typescript": "^5"
   }
