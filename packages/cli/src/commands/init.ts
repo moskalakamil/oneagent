@@ -215,8 +215,6 @@ export default defineCommand({
 
     await backupFiles(root, detected);
     await removeDeprecatedFiles(root);
-    await warnDeprecatedCommandFiles(root);
-
     await migrateRuleAndSkillFiles(root);
 
     const config: Config = { version: 1, targets: makeTargets(...selectedTargets) };
@@ -231,6 +229,8 @@ export default defineCommand({
     }
     await fs.writeFile(path.join(root, ".oneagent/rules/oneagent.md"), DOTAI_META_RULE);
     s.stop("Directory structure created.");
+
+    await warnDeprecatedCommandFiles(root);
 
     const s2 = spinner();
     s2.start("Generating symlinks and agent files...");
