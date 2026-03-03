@@ -73,9 +73,10 @@ describe("buildRulesSymlinks", () => {
     }
   });
 
-  test("skips copilot and opencode (handled separately)", () => {
+  test("skips copilot (handled separately), includes opencode", () => {
     const entries = buildRulesSymlinks("/root", ["copilot", "opencode"]);
-    expect(entries.length).toBe(0);
+    expect(entries.length).toBe(1);
+    expect(entries[0]!.symlinkPath).toBe("/root/.opencode/rules");
   });
 });
 
@@ -86,9 +87,10 @@ describe("buildSkillSymlinks", () => {
     expect(entries.some((e) => e.symlinkPath === "/root/.cursor/skills")).toBe(true);
   });
 
-  test("returns empty array when no relevant targets", () => {
+  test("includes opencode skills dir", () => {
     const entries = buildSkillSymlinks("/root", ["opencode"]);
-    expect(entries.length).toBe(0);
+    expect(entries.length).toBe(1);
+    expect(entries[0]!.symlinkPath).toBe("/root/.opencode/skills");
   });
 
   test("all entries have a relative target pointing to .oneagent/skills", () => {
