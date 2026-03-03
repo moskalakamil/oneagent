@@ -56,8 +56,10 @@ name: my-template
 description: Short description shown in the interactive picker
 
 skills:
-  - vercel-labs/vercel-react-best-practices
-  - vercel-labs/vercel-composition-patterns
+  - repo: https://github.com/vercel-labs/skills
+    skill: vercel-react-best-practices
+  - repo: https://github.com/vercel-labs/skills
+    skill: vercel-composition-patterns
 
 plugins:
   - target: claude
@@ -80,9 +82,17 @@ One-line description shown in the interactive template picker.
 
 ### `skills`
 
-Skills to install from the [skills marketplace](https://skills.sh). Format: `owner/skill-name`.
+Skills to install. Each entry specifies a GitHub repository and the skill name within it — matching the `npx skills add <repo> --skill <name>` command.
 
-Installed after symlinks are set up, so they land in `.agents/skills/` and get distributed to all configured agents automatically.
+```yaml
+skills:
+  - repo: https://github.com/vercel-labs/skills
+    skill: vercel-react-best-practices
+  - repo: https://github.com/remotion-dev/skills
+    skill: remotion-best-practices
+```
+
+Installed after symlinks are set up, so they land in `.oneagent/skills/` and get distributed to all configured agents automatically.
 
 ### `plugins`
 

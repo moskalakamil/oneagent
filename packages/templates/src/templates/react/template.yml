@@ -1,8 +1,10 @@
 name: react
 description: React / Next.js project starter
 skills:
-  - vercel-labs/vercel-react-best-practices
-  - vercel-labs/vercel-composition-patterns
+  - repo: https://github.com/vercel-labs/skills
+    skill: find-skills
+  - repo: https://github.com/vercel-labs/agent-skills 
+    skill: vercel-react-best-practices
 plugins:
   - target: claude
     id: typescript-lsp@claude-plugins-official

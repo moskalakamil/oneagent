@@ -12,10 +12,15 @@ export interface TemplatePlugin {
   id: string;
 }
 
+export interface SkillEntry {
+  repo: string;
+  skill: string;
+}
+
 export interface TemplateDefinition {
   name: string;
   description: string;
-  skills: string[];
+  skills: SkillEntry[];
   plugins: TemplatePlugin[];
   instructions: string;
   rules: Array<{ name: string; content: string }>;
@@ -31,18 +36,30 @@ export function parseTemplateYaml(yamlText: string, fallbackName = "custom"): Pi
   const descMatch = yamlText.match(/^description:\s*(.+)$/m);
   const description = descMatch?.[1]?.trim() ?? "";
 
-  const skills: string[] = [];
-  const skillsBlockMatch = yamlText.match(/^skills:\s*\n((?:  - .+\n?)*)/m);
-  if (skillsBlockMatch) {
-    const lines = skillsBlockMatch[1]!.split("\n").filter(Boolean);
-    for (const line of lines) {
-      const skill = line.replace(/^\s*-\s*/, "").trim();
-      if (skill) skills.push(skill);
-    }
-  }
-
+  const skills = parseSkillsFromYaml(yamlText);
   const plugins = parsePluginsFromYaml(yamlText);
   return { name, description, skills, plugins };
+}
+
+// Parses the `skills:` block from a template.yml string.
+// Expects entries in the format:
+//   skills:
+//     - repo: https://github.com/owner/skills
+//       skill: skill-name
+export function parseSkillsFromYaml(yamlText: string): SkillEntry[] {
+  const skills: SkillEntry[] = [];
+  const section = yamlText.match(/^skills:\s*\n((?:(?:  -.+|\s{4}.+)\n?)*)/m);
+  if (!section) return skills;
+  const block = section[1]!;
+  const entries = block.split(/\n(?=  -)/);
+  for (const entry of entries) {
+    const repoMatch = entry.match(/repo:\s*(\S+)/);
+    const skillMatch = entry.match(/skill:\s*(\S+)/);
+    if (repoMatch && skillMatch) {
+      skills.push({ repo: repoMatch[1]!.trim(), skill: skillMatch[1]!.trim() });
+    }
+  }
+  return skills;
 }
 
 // Parses the `plugins:` block from a template.yml string.
@@ -85,33 +102,33 @@ export async function applyTemplateFiles(root: string, template: TemplateDefinit
 }
 
 export interface SkillInstallResult {
-  installed: string[];
-  failed: Array<{ identifier: string; reason: string }>;
+  installed: SkillEntry[];
+  failed: Array<{ entry: SkillEntry; reason: string }>;
 }
 
-// Phase 2: installs skills via `npx skills add <identifier> --yes`.
-// Call this AFTER generate() so agent directories (symlinks) already exist.
+// Phase 2: installs skills via `npx skills add <repo> --skill <name>`.
+// All skills are installed in parallel. Call this AFTER generate() so agent directories exist.
 // Never throws — failed skills are collected and returned in the result.
 export async function installTemplateSkills(
   root: string,
   template: TemplateDefinition,
-  onSkillInstalled?: (identifier: string) => void,
 ): Promise<SkillInstallResult> {
-  const installed: string[] = [];
-  const failed: Array<{ identifier: string; reason: string }> = [];
+  const results = await Promise.all(
+    template.skills.map(async (entry) => {
+      try {
+        await execFileAsync("npx", ["skills", "add", entry.repo, "--skill", entry.skill, "--agent", "universal", "--yes"], { cwd: root });
+        return { entry, ok: true as const };
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        return { entry, ok: false as const, reason };
+      }
+    }),
+  );
 
-  for (const identifier of template.skills) {
-    try {
-      await execFileAsync("npx", ["skills", "add", identifier, "--agent", "universal", "--yes"], { cwd: root });
-      installed.push(identifier);
-      onSkillInstalled?.(identifier);
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      failed.push({ identifier, reason });
-    }
-  }
-
-  return { installed, failed };
+  return {
+    installed: results.filter((r) => r.ok).map((r) => r.entry),
+    failed: results.filter((r) => !r.ok).map((r) => ({ entry: r.entry, reason: (r as { reason: string }).reason })),
+  };
 }
 
 export interface PluginInstallResult {

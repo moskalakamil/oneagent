@@ -284,7 +284,7 @@ export default defineCommand({
       skillResult = await installTemplateSkills(root, template);
       s3.stop(`Installed ${skillResult.installed.length} skill(s).`);
       for (const f of skillResult.failed) {
-        log.warn(`Skill "${f.identifier}" could not be installed and was skipped.`);
+        log.warn(`Skill "${f.entry.skill}" (${f.entry.repo}) could not be installed and was skipped.`);
       }
     }
 
@@ -304,7 +304,7 @@ export default defineCommand({
         ? [
             `Template: ${template.name} — ${template.description}`,
             ...(skillResult.installed.length > 0
-              ? [`Installed ${skillResult.installed.length} skill(s): ${skillResult.installed.join(", ")}`]
+              ? [`Installed ${skillResult.installed.length} skill(s): ${skillResult.installed.map((s) => s.skill).join(", ")}`]
               : []),
             ...(template.rules.length > 0
               ? [`Added ${template.rules.length} rule(s) from template`]
