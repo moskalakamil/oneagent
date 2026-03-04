@@ -26,16 +26,6 @@ plugins:
     id: security-guidance@claude-plugins-official
   - target: claude
     id: claude-md-management@claude-plugins-official
-  - target: cursor
-    id: context7-plugin
-  - target: cursor
-    id: superpowers
-  - target: cursor
-    id: parallel
-  - target: cursor
-    id: runlayer
-  - target: cursor
-    id: cursor-team-kit
   - target: opencode
     id: oh-my-opencode
   - target: opencode
