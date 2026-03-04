@@ -41,7 +41,7 @@ import {
   BUILTIN_TEMPLATE_META,
 } from "@moskala/oneagent-templates";
 
-const ABOUT_ONEAGENT_RULE_PATH = new URL("../assets/about-oneagent.md", import.meta.url);
+import { ABOUT_ONEAGENT_CONTENT } from "../assets/about-oneagent.ts";
 
 function cancelAndExit(): never {
   outro("Cancelled.");
@@ -247,7 +247,7 @@ export default defineCommand({
         importedContent.trim() ? importedContent : "# Project Instructions\n\nAdd your AI instructions here.\n";
       await fs.writeFile(path.join(root, ".oneagent/instructions.md"), instructionsContent);
     }
-    await fs.copyFile(ABOUT_ONEAGENT_RULE_PATH, path.join(root, ".oneagent/rules/about-oneagent.md"));
+    await fs.writeFile(path.join(root, ".oneagent/rules/about-oneagent.md"), ABOUT_ONEAGENT_CONTENT, "utf-8");
     s.stop("Directory structure created.");
 
     // Warn if commands exist: skills are broader and more powerful
