@@ -1,8 +1,8 @@
 import { test, expect, describe } from "bun:test";
-import { mkdtemp, mkdir } from "fs/promises";
+import { mkdtemp, mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { buildCopilotContent, copilotFilePath, generateCopilotRules, buildCopilotPromptContent, copilotPromptFilePath, generateCopilotSkills } from "../copilot.ts";
+import { copilotFilePath, generateCopilotRules, buildCopilotPromptContent, copilotPromptFilePath, generateCopilotSkills } from "../copilot.ts";
 import type { RuleFile, SkillFile } from "../types.ts";
 
 async function mkTempDir(): Promise<string> {
@@ -12,18 +12,7 @@ async function mkTempDir(): Promise<string> {
 const mockRule: RuleFile = {
   name: "typescript",
   path: "/root/.oneagent/rules/typescript.md",
-  applyTo: "**/*.ts",
-  content: "# TypeScript rules",
 };
-
-describe("buildCopilotContent", () => {
-  test("wraps content with applyTo frontmatter", () => {
-    const result = buildCopilotContent(mockRule);
-    expect(result).toContain('applyTo: "**/*.ts"');
-    expect(result).toContain("# TypeScript rules");
-    expect(result.startsWith("---")).toBe(true);
-  });
-});
 
 describe("copilotFilePath", () => {
   test("returns correct .instructions.md path", () => {
@@ -90,24 +79,25 @@ describe("generateCopilotSkills", () => {
 });
 
 describe("generateCopilotRules", () => {
-  test("writes instruction files to .github/instructions/", async () => {
+  test("copies rule file to .github/instructions/ with .instructions.md extension", async () => {
     const dir = await mkTempDir();
-    const rule: RuleFile = { ...mockRule, path: join(dir, "typescript.md") };
+    const srcPath = join(dir, "typescript.md");
+    const srcContent = `---\napplyTo: "**/*.ts"\nalwaysApply: false\n---\n# TypeScript rules`;
+    await writeFile(srcPath, srcContent);
+    const rule: RuleFile = { ...mockRule, path: srcPath };
 
     await generateCopilotRules(dir, [rule]);
 
-    const expected = join(dir, ".github/instructions/typescript.instructions.md");
-    expect(await Bun.file(expected).exists()).toBe(true);
-
-    const content = await Bun.file(expected).text();
-    expect(content).toContain('applyTo: "**/*.ts"');
-    expect(content).toContain("# TypeScript rules");
+    const dest = join(dir, ".github/instructions/typescript.instructions.md");
+    expect(await Bun.file(dest).exists()).toBe(true);
+    expect(await Bun.file(dest).text()).toBe(srcContent);
   });
 
   test("creates parent directories if they do not exist", async () => {
     const dir = await mkTempDir();
-    const rule: RuleFile = { ...mockRule, path: join(dir, "typescript.md") };
-    // .github/instructions/ does not exist yet
+    const srcPath = join(dir, "typescript.md");
+    await writeFile(srcPath, "# rule");
+    const rule: RuleFile = { ...mockRule, path: srcPath };
     await generateCopilotRules(dir, [rule]);
     expect(await Bun.file(join(dir, ".github/instructions/typescript.instructions.md")).exists()).toBe(true);
   });

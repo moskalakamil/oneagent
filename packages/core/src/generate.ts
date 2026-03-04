@@ -5,7 +5,7 @@ import { activeTargets } from "./config.ts";
 import { readRules } from "./rules.ts";
 import { readSkills } from "./skills.ts";
 import { buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildAgentsDirSymlinks, createAllSymlinks, migrateRuleAndSkillFiles } from "./symlinks.ts";
-import { buildCopilotContent, copilotFilePath, buildCopilotPromptContent, copilotPromptFilePath, generateCopilotRules, generateCopilotSkills } from "./copilot.ts";
+import { copilotFilePath, buildCopilotPromptContent, copilotPromptFilePath, generateCopilotRules, generateCopilotSkills } from "./copilot.ts";
 import { writeOpencode } from "./opencode.ts";
 import { readDetectedFile } from "./detect.ts";
 
@@ -41,10 +41,13 @@ export async function detectGenerateCollisions(root: string, config: Config): Pr
       ...rules.map(async (rule): Promise<DetectedFile | null> => {
         const filePath = copilotFilePath(root, rule.name);
         try {
-          const content = await fs.readFile(filePath, "utf-8");
-          if (content === buildCopilotContent(rule)) return null;
+          const [source, dest] = await Promise.all([
+            fs.readFile(rule.path, "utf-8"),
+            fs.readFile(filePath, "utf-8"),
+          ]);
+          if (source === dest) return null;
           const stat = await fs.lstat(filePath);
-          return { relativePath: path.relative(root, filePath), absolutePath: filePath, sizeBytes: stat.size, modifiedAt: stat.mtime, content };
+          return { relativePath: path.relative(root, filePath), absolutePath: filePath, sizeBytes: stat.size, modifiedAt: stat.mtime, content: dest };
         } catch { return null; }
       }),
       ...skills.map(async (skill): Promise<DetectedFile | null> => {

@@ -4,7 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { generate, detectGenerateCollisions } from "../generate.ts";
 import { makeTargets } from "../config.ts";
-import { buildCopilotContent, copilotFilePath } from "../copilot.ts";
+import { copilotFilePath } from "../copilot.ts";
 import type { Config } from "../types.ts";
 
 async function mkTempDir(): Promise<string> {

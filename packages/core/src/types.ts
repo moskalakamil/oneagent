@@ -16,8 +16,6 @@ export interface DetectedFile {
 export interface RuleFile {
   name: string;
   path: string;
-  applyTo: string;
-  content: string;
 }
 
 export interface SkillFile {

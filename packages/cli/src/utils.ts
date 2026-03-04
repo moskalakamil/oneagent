@@ -4,10 +4,11 @@ import { detectDeprecatedCommandFiles } from "@moskala/oneagent-core";
 export async function warnDeprecatedCommandFiles(root: string): Promise<void> {
   const deprecated = await detectDeprecatedCommandFiles(root);
   if (deprecated.length === 0) return;
+  const dirs = [...new Set(deprecated.map((f) => f.split("/").slice(0, 2).join("/")))];
   note(
     deprecated.map((f) => `  • ${f}`).join("\n") +
       "\n\n  Move them to .oneagent/skills/ to manage them with oneagent.",
-    ".claude/commands/ is deprecated — use .oneagent/skills/ instead",
+    `${dirs.join(", ")} — use .oneagent/skills/ instead`,
   );
 }
 

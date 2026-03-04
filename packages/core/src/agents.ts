@@ -14,6 +14,8 @@ export interface AgentDefinition {
   skillsDir?: string;
   /** Legacy files to remove during init (superseded by current format). */
   deprecatedFiles?: string[];
+  /** Deprecated commands directories — users should migrate to .oneagent/skills/. */
+  deprecatedCommandsDir?: string;
 }
 
 export const AGENT_DEFINITIONS: AgentDefinition[] = [
@@ -25,6 +27,7 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
     mainFile: "CLAUDE.md",
     rulesDir: ".claude/rules",
     skillsDir: ".claude/skills",
+    deprecatedCommandsDir: ".claude/commands",
   },
   {
     target: "cursor",
@@ -35,6 +38,7 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
     rulesDir: ".cursor/rules",
     skillsDir: ".cursor/skills",
     deprecatedFiles: [".cursorrules"],
+    deprecatedCommandsDir: ".cursor/commands",
   },
   {
     target: "windsurf",
@@ -62,7 +66,7 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
     detectIndicators: [".github/copilot-instructions.md", ".github"],
     mainFile: ".github/copilot-instructions.md",
     skillsDir: ".github/skills",
-    // rules: generated as .instructions.md files, not symlinks
+    // rules: generated as <name>.instructions.md files, not symlinks
   },
 ];
 

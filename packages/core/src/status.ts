@@ -4,15 +4,17 @@ import { activeTargets } from "./config.ts";
 import { readRules } from "./rules.ts";
 import { readSkills } from "./skills.ts";
 import { buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildAgentsDirSymlinks, checkSymlink } from "./symlinks.ts";
-import { buildCopilotContent, buildCopilotPromptContent, copilotFilePath, copilotPromptFilePath } from "./copilot.ts";
+import { buildCopilotPromptContent, copilotFilePath, copilotPromptFilePath } from "./copilot.ts";
 import { readOpencode } from "./opencode.ts";
 
 export async function checkGeneratedFile(root: string, rule: RuleFile): Promise<GeneratedFileCheck> {
   const filePath = copilotFilePath(root, rule.name);
-  const expected = buildCopilotContent(rule);
   try {
-    const content = await fs.readFile(filePath, "utf-8");
-    return { path: filePath, exists: true, upToDate: content === expected };
+    const [source, dest] = await Promise.all([
+      fs.readFile(rule.path, "utf-8"),
+      fs.readFile(filePath, "utf-8"),
+    ]);
+    return { path: filePath, exists: true, upToDate: source === dest };
   } catch {
     return { path: filePath, exists: false, upToDate: false };
   }

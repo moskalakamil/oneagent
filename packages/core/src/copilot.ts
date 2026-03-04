@@ -2,18 +2,14 @@ import path from "path";
 import fs from "fs/promises";
 import type { RuleFile, SkillFile } from "./types.ts";
 
-export function buildCopilotContent(rule: RuleFile): string {
-  return `---\napplyTo: "${rule.applyTo}"\n---\n${rule.content}`;
-}
-
 export function copilotFilePath(root: string, ruleName: string): string {
   return path.join(root, ".github/instructions", `${ruleName}.instructions.md`);
 }
 
 export async function generateCopilotRule(root: string, rule: RuleFile): Promise<void> {
-  const filePath = copilotFilePath(root, rule.name);
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, buildCopilotContent(rule));
+  const destPath = copilotFilePath(root, rule.name);
+  await fs.mkdir(path.dirname(destPath), { recursive: true });
+  await fs.copyFile(rule.path, destPath);
 }
 
 export async function generateCopilotRules(root: string, rules: RuleFile[]): Promise<void> {
