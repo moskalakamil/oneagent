@@ -41,28 +41,7 @@ import {
   BUILTIN_TEMPLATE_META,
 } from "@moskala/oneagent-templates";
 
-const DOTAI_META_RULE = `---
-applyTo: "**"
----
-# oneagent
-
-This project uses [oneagent](https://github.com/moskalakamil/oneagent) to manage AI agent configuration.
-
-Rules are stored in \`.oneagent/rules/\` and distributed to agents automatically via symlinks or generated files.
-
-To add a new rule, create a \`.md\` file in \`.oneagent/rules/\` with optional frontmatter:
-
-\`\`\`md
----
-applyTo: "**/*.ts"
----
-# Rule name
-
-Rule content here.
-\`\`\`
-
-Then run \`dotai generate\` to distribute the rule to all configured agents.
-`;
+const ABOUT_ONEAGENT_RULE_PATH = new URL("../assets/about-oneagent.md", import.meta.url);
 
 function cancelAndExit(): never {
   outro("Cancelled.");
@@ -267,7 +246,7 @@ export default defineCommand({
         importedContent.trim() ? importedContent : "# Project Instructions\n\nAdd your AI instructions here.\n";
       await fs.writeFile(path.join(root, ".oneagent/instructions.md"), instructionsContent);
     }
-    await fs.writeFile(path.join(root, ".oneagent/rules/oneagent.md"), DOTAI_META_RULE);
+    await fs.copyFile(ABOUT_ONEAGENT_RULE_PATH, path.join(root, ".oneagent/rules/about-oneagent.md"));
     s.stop("Directory structure created.");
 
     await warnDeprecatedCommandFiles(root);
@@ -314,7 +293,7 @@ export default defineCommand({
               : []),
           ]
         : ["Created .oneagent/instructions.md"]),
-      "Created .oneagent/rules/oneagent.md",
+      "Created .oneagent/rules/about-oneagent.md",
       ...selectedTargets.map((t) => `Configured: ${t}`),
       ...(detected.length > 0
         ? [`Backed up ${detected.length} file(s) to .oneagent/backup/`]
