@@ -18,6 +18,11 @@ export interface RuleFile {
   path: string;
 }
 
+export interface CommandFile {
+  name: string;
+  path: string;
+}
+
 export interface SkillFile {
   name: string;
   path: string;

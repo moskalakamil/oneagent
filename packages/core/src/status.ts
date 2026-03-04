@@ -3,7 +3,7 @@ import type { Config, GeneratedFileCheck, OpenCodeCheck, RuleFile, StatusResult 
 import { activeTargets } from "./config.ts";
 import { readRules } from "./rules.ts";
 import { readSkills } from "./skills.ts";
-import { buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildAgentsDirSymlinks, checkSymlink } from "./symlinks.ts";
+import { buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildCommandSymlinks, buildAgentsDirSymlinks, checkSymlink } from "./symlinks.ts";
 import { buildCopilotPromptContent, copilotFilePath, copilotPromptFilePath } from "./copilot.ts";
 import { readOpencode } from "./opencode.ts";
 
@@ -48,6 +48,7 @@ export async function checkStatus(root: string, config: Config): Promise<StatusR
     ...buildMainSymlinks(root, targets),
     ...buildRulesSymlinks(root, targets),
     ...buildSkillSymlinks(root, targets),
+    ...buildCommandSymlinks(root, targets),
     ...buildAgentsDirSymlinks(root),
   ];
 

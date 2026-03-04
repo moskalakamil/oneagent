@@ -61,17 +61,3 @@ export async function removeDeprecatedFiles(root: string): Promise<void> {
   }
 }
 
-export async function detectDeprecatedCommandFiles(root: string): Promise<string[]> {
-  const dirs = AGENT_DEFINITIONS.map((d) => d.deprecatedCommandsDir).filter(Boolean) as string[];
-  const results = await Promise.all(
-    dirs.map(async (dir) => {
-      try {
-        const entries = await fs.readdir(path.join(root, dir), { withFileTypes: true });
-        return entries.filter((e) => e.isFile()).map((e) => path.join(dir, e.name));
-      } catch {
-        return [];
-      }
-    }),
-  );
-  return results.flat();
-}

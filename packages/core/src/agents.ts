@@ -12,10 +12,10 @@ export interface AgentDefinition {
   rulesDir?: string;
   /** Whole-dir symlink for skills (relative to root). Omit if not applicable. */
   skillsDir?: string;
+  /** Whole-dir symlink for commands (relative to root). Omit if agent does not support custom commands. */
+  commandsDir?: string;
   /** Legacy files to remove during init (superseded by current format). */
   deprecatedFiles?: string[];
-  /** Deprecated commands directories — users should migrate to .oneagent/skills/. */
-  deprecatedCommandsDir?: string;
 }
 
 export const AGENT_DEFINITIONS: AgentDefinition[] = [
@@ -27,7 +27,7 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
     mainFile: "CLAUDE.md",
     rulesDir: ".claude/rules",
     skillsDir: ".claude/skills",
-    deprecatedCommandsDir: ".claude/commands",
+    commandsDir: ".claude/commands",
   },
   {
     target: "cursor",
@@ -38,7 +38,7 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
     rulesDir: ".cursor/rules",
     skillsDir: ".cursor/skills",
     deprecatedFiles: [".cursorrules"],
-    deprecatedCommandsDir: ".cursor/commands",
+    commandsDir: ".cursor/commands",
   },
   {
     target: "windsurf",
@@ -58,6 +58,7 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
     mainFile: "AGENTS.md",
     rulesDir: ".opencode/rules",
     skillsDir: ".opencode/skills",
+    commandsDir: ".opencode/commands",
   },
   {
     target: "copilot",

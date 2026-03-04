@@ -60,6 +60,16 @@ export function buildSkillSymlinks(root: string, targets: AgentTarget[]): Symlin
     });
 }
 
+export function buildCommandSymlinks(root: string, targets: AgentTarget[]): SymlinkEntry[] {
+  const targetAbs = path.join(root, ".oneagent/commands");
+  return AGENT_DEFINITIONS
+    .filter((d) => targets.includes(d.target) && d.commandsDir)
+    .map((d) => {
+      const symlinkPath = path.join(root, d.commandsDir!);
+      return { symlinkPath, target: relativeTarget(symlinkPath, targetAbs), label: d.commandsDir! };
+    });
+}
+
 export function buildAgentsDirSymlinks(root: string): SymlinkEntry[] {
   const symlinkPath = path.join(root, ".agents/skills");
   const targetAbs = path.join(root, ".oneagent/skills");
@@ -122,6 +132,7 @@ async function migrateAndRemoveDir(src: string, dest: string, root: string): Pro
 export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
   const destRules = path.join(root, ".oneagent/rules");
   const destSkills = path.join(root, ".oneagent/skills");
+  const destCommands = path.join(root, ".oneagent/commands");
   // Rules dirs: the entire directory becomes a symlink, so move files out and remove the dir.
   // Sequential to avoid same-name conflicts across dirs.
   await migrateAndRemoveDir(path.join(root, ".cursor/rules"), destRules, root);
@@ -129,6 +140,10 @@ export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
   await migrateAndRemoveDir(path.join(root, ".windsurf/rules"), destRules, root);
   await migrateAndRemoveDir(path.join(root, ".opencode/rules"), destRules, root);
   await migrateAndRemoveDir(path.join(root, ".agents/skills"), destSkills, root);
+  // Commands migration — sequential to avoid same-name conflicts
+  await migrateAndRemoveDir(path.join(root, ".claude/commands"), destCommands, root);
+  await migrateAndRemoveDir(path.join(root, ".cursor/commands"), destCommands, root);
+  await migrateAndRemoveDir(path.join(root, ".opencode/commands"), destCommands, root);
 }
 
 export async function createAllSymlinks(entries: SymlinkEntry[]): Promise<void> {

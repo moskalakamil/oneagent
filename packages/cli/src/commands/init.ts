@@ -13,7 +13,7 @@ import {
 } from "@clack/prompts";
 import path from "path";
 import fs from "fs/promises";
-import { timeAgo, warnDeprecatedCommandFiles } from "../utils.ts";
+import { timeAgo } from "../utils.ts";
 import {
   configExists,
   writeConfig,
@@ -231,6 +231,7 @@ export default defineCommand({
 
     await fs.mkdir(path.join(root, ".oneagent/rules"), { recursive: true });
     await fs.mkdir(path.join(root, ".oneagent/skills"), { recursive: true });
+    await fs.mkdir(path.join(root, ".oneagent/commands"), { recursive: true });
 
     await backupFiles(root, detected);
     await removeDeprecatedFiles(root);
@@ -249,7 +250,23 @@ export default defineCommand({
     await fs.copyFile(ABOUT_ONEAGENT_RULE_PATH, path.join(root, ".oneagent/rules/about-oneagent.md"));
     s.stop("Directory structure created.");
 
-    await warnDeprecatedCommandFiles(root);
+    // Warn if commands exist: skills are broader and more powerful
+    const commandFiles = await fs.readdir(path.join(root, ".oneagent/commands")).catch(() => []);
+    if (commandFiles.some((f) => f.endsWith(".md"))) {
+      log.warn(
+        "Commands detected in .oneagent/commands/. Consider migrating to .oneagent/skills/ — skills are distributed to more agents and support richer features.",
+      );
+    }
+
+    // Warn if selected targets don't support commands (when commands exist)
+    if (commandFiles.some((f) => f.endsWith(".md"))) {
+      const commandsSupported = new Set(AGENT_DEFINITIONS.filter((d) => d.commandsDir).map((d) => d.target));
+      const unsupported = selectedTargets.filter((t) => !commandsSupported.has(t));
+      if (unsupported.length > 0) {
+        const names = unsupported.map((t) => AGENT_DEFINITIONS.find((d) => d.target === t)!.displayName).join(", ");
+        log.warn(`Commands in .oneagent/commands/ will not be available in: ${names} — these agents do not support custom slash commands.`);
+      }
+    }
 
     const s2 = spinner();
     s2.start("Generating symlinks and agent files...");

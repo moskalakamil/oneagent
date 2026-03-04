@@ -2,7 +2,7 @@ import { test, expect, describe } from "bun:test";
 import { mkdtemp, lstat, mkdir, writeFile, symlink, access } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createSymlink, buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildAgentsDirSymlinks, checkSymlink, migrateRuleAndSkillFiles } from "../symlinks.ts";
+import { createSymlink, buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildCommandSymlinks, buildAgentsDirSymlinks, checkSymlink, migrateRuleAndSkillFiles } from "../symlinks.ts";
 
 async function mkTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "dotai-test-"));
@@ -98,6 +98,33 @@ describe("buildSkillSymlinks", () => {
     for (const e of entries) {
       expect(e.target.startsWith("/")).toBe(false);
       expect(e.target).toBe("../.oneagent/skills");
+    }
+  });
+});
+
+describe("buildCommandSymlinks", () => {
+  test("creates entries for claude and cursor", () => {
+    const entries = buildCommandSymlinks("/root", ["claude", "cursor"]);
+    expect(entries.some((e) => e.symlinkPath === "/root/.claude/commands")).toBe(true);
+    expect(entries.some((e) => e.symlinkPath === "/root/.cursor/commands")).toBe(true);
+  });
+
+  test("creates entry for opencode", () => {
+    const entries = buildCommandSymlinks("/root", ["opencode"]);
+    expect(entries.length).toBe(1);
+    expect(entries[0]!.symlinkPath).toBe("/root/.opencode/commands");
+  });
+
+  test("returns empty for windsurf and copilot (unsupported)", () => {
+    expect(buildCommandSymlinks("/root", ["windsurf"]).length).toBe(0);
+    expect(buildCommandSymlinks("/root", ["copilot"]).length).toBe(0);
+  });
+
+  test("all entries have relative target pointing to .oneagent/commands", () => {
+    const entries = buildCommandSymlinks("/root", ["claude", "cursor", "opencode"]);
+    for (const e of entries) {
+      expect(e.target.startsWith("/")).toBe(false);
+      expect(e.target).toBe("../.oneagent/commands");
     }
   });
 });
@@ -271,6 +298,59 @@ describe("migrateRuleAndSkillFiles", () => {
     expect(content).toBe("real content");
     // .cursor/rules directory should be removed (ready for directory symlink)
     await expect(access(join(dir, ".cursor/rules"))).rejects.toThrow();
+  });
+
+  test("moves .claude/commands/ files to .oneagent/commands/", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".claude/commands"), { recursive: true });
+    await writeFile(join(dir, ".claude/commands/deploy.md"), "# Deploy");
+    await migrateRuleAndSkillFiles(dir);
+    const content = await Bun.file(join(dir, ".oneagent/commands/deploy.md")).text();
+    expect(content).toBe("# Deploy");
+    await expect(access(join(dir, ".claude/commands"))).rejects.toThrow();
+  });
+
+  test("moves .cursor/commands/ files to .oneagent/commands/", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".cursor/commands"), { recursive: true });
+    await writeFile(join(dir, ".cursor/commands/review.md"), "# Review");
+    await migrateRuleAndSkillFiles(dir);
+    const content = await Bun.file(join(dir, ".oneagent/commands/review.md")).text();
+    expect(content).toBe("# Review");
+  });
+
+  test("moves .opencode/commands/ files to .oneagent/commands/", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".opencode/commands"), { recursive: true });
+    await writeFile(join(dir, ".opencode/commands/test.md"), "# Test");
+    await migrateRuleAndSkillFiles(dir);
+    const content = await Bun.file(join(dir, ".oneagent/commands/test.md")).text();
+    expect(content).toBe("# Test");
+  });
+
+  test("commands conflict — claude wins, cursor version backed up", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".claude/commands"), { recursive: true });
+    await mkdir(join(dir, ".cursor/commands"), { recursive: true });
+    await writeFile(join(dir, ".claude/commands/deploy.md"), "from claude");
+    await writeFile(join(dir, ".cursor/commands/deploy.md"), "from cursor");
+    await migrateRuleAndSkillFiles(dir);
+    // claude was migrated first — wins
+    const content = await Bun.file(join(dir, ".oneagent/commands/deploy.md")).text();
+    expect(content).toBe("from claude");
+    // cursor version backed up
+    const backup = await Bun.file(join(dir, ".oneagent/backup/.cursor_commands_deploy.md")).text();
+    expect(backup).toBe("from cursor");
+  });
+
+  test("no-op when .claude/commands is already a symlink", async () => {
+    const dir = await mkTempDir();
+    await mkdir(join(dir, ".claude"), { recursive: true });
+    await mkdir(join(dir, ".oneagent/commands"), { recursive: true });
+    await symlink(join(dir, ".oneagent/commands"), join(dir, ".claude/commands"));
+    await migrateRuleAndSkillFiles(dir);
+    const stat = await lstat(join(dir, ".claude/commands"));
+    expect(stat.isSymbolicLink()).toBe(true);
   });
 });
 
