@@ -133,17 +133,15 @@ export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
   const destRules = path.join(root, ".oneagent/rules");
   const destSkills = path.join(root, ".oneagent/skills");
   const destCommands = path.join(root, ".oneagent/commands");
-  // Rules dirs: the entire directory becomes a symlink, so move files out and remove the dir.
-  // Sequential to avoid same-name conflicts across dirs.
-  await migrateAndRemoveDir(path.join(root, ".cursor/rules"), destRules, root);
-  await migrateAndRemoveDir(path.join(root, ".claude/rules"), destRules, root);
-  await migrateAndRemoveDir(path.join(root, ".windsurf/rules"), destRules, root);
-  await migrateAndRemoveDir(path.join(root, ".opencode/rules"), destRules, root);
+  // Derive migration sources from agent definitions — sequential to avoid same-name conflicts.
+  for (const def of AGENT_DEFINITIONS) {
+    if (def.rulesDir) await migrateAndRemoveDir(path.join(root, def.rulesDir), destRules, root);
+  }
+  // .agents/skills — standard skills.sh path, not represented in agent definitions
   await migrateAndRemoveDir(path.join(root, ".agents/skills"), destSkills, root);
-  // Commands migration — sequential to avoid same-name conflicts
-  await migrateAndRemoveDir(path.join(root, ".claude/commands"), destCommands, root);
-  await migrateAndRemoveDir(path.join(root, ".cursor/commands"), destCommands, root);
-  await migrateAndRemoveDir(path.join(root, ".opencode/commands"), destCommands, root);
+  for (const def of AGENT_DEFINITIONS) {
+    if (def.commandsDir) await migrateAndRemoveDir(path.join(root, def.commandsDir), destCommands, root);
+  }
 }
 
 export async function createAllSymlinks(entries: SymlinkEntry[]): Promise<void> {

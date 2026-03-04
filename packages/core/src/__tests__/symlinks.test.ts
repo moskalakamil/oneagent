@@ -231,18 +231,18 @@ describe("migrateRuleAndSkillFiles", () => {
     expect(content).toBe("# TypeScript");
   });
 
-  test("dest wins on conflict — .claude/rules does not overwrite file already migrated from .cursor/rules", async () => {
+  test("dest wins on conflict — .cursor/rules does not overwrite file already migrated from .claude/rules", async () => {
     const dir = await mkTempDir();
-    await mkdir(join(dir, ".cursor/rules"), { recursive: true });
     await mkdir(join(dir, ".claude/rules"), { recursive: true });
-    await writeFile(join(dir, ".cursor/rules/style.md"), "from cursor");
+    await mkdir(join(dir, ".cursor/rules"), { recursive: true });
     await writeFile(join(dir, ".claude/rules/style.md"), "from claude");
+    await writeFile(join(dir, ".cursor/rules/style.md"), "from cursor");
     await migrateRuleAndSkillFiles(dir);
-    // cursor was migrated first, claude should be skipped
+    // claude is first in AGENT_DEFINITIONS, so it wins
     const content = await Bun.file(join(dir, ".oneagent/rules/style.md")).text();
-    expect(content).toBe("from cursor");
-    // source file was deleted (not left in place)
-    await expect(access(join(dir, ".claude/rules/style.md"))).rejects.toThrow();
+    expect(content).toBe("from claude");
+    // cursor version deleted (backed up since content differs)
+    await expect(access(join(dir, ".cursor/rules/style.md"))).rejects.toThrow();
   });
 
   test("dest wins with same content — source deleted, no backup created", async () => {
