@@ -5,6 +5,6 @@
     "init": "bun run ../../packages/cli/src/index.ts init",
     "generate": "bun run ../../packages/cli/src/index.ts generate",
     "status": "bun run ../../packages/cli/src/index.ts status",
-    "clear": "rm -rf CLAUDE.md AGENTS.md .windsurfrules .cursorrules .claude .cursor .windsurf .github opencode.json"
+    "clear": "bun ./scripts/clear.ts"
   }
 }
