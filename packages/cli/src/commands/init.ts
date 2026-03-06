@@ -131,6 +131,53 @@ async function backupFiles(root: string, files: DetectedFile[]): Promise<void> {
   }
 }
 
+async function cleanupUnselectedAgentDirs(
+  root: string,
+  presentTargets: AgentTarget[],
+  selectedTargets: AgentTarget[],
+): Promise<void> {
+  const unselected = presentTargets.filter((t) => !selectedTargets.includes(t));
+  if (unselected.length === 0) return;
+
+  const backupDir = path.join(root, ".oneagent/backup");
+
+  for (const target of unselected) {
+    const def = AGENT_DEFINITIONS.find((d) => d.target === target)!;
+
+    // Derive agent root dir from first segment of any dir field, skip .github
+    const agentDir = [def.rulesDir, def.skillsDir, def.commandsDir]
+      .filter(Boolean)
+      .map((d) => d!.split("/")[0]!)
+      .find((d) => d !== ".github");
+
+    if (agentDir) {
+      const agentDirAbs = path.join(root, agentDir);
+      let stat;
+      try { stat = await fs.lstat(agentDirAbs); } catch { /* doesn't exist */ }
+      if (stat && stat.isDirectory() && !stat.isSymbolicLink()) {
+        // Backup any remaining non-symlink files before removing
+        let entries: import("fs").Dirent[] = [];
+        try { entries = await fs.readdir(agentDirAbs, { withFileTypes: true }); } catch {}
+        for (const entry of entries) {
+          if (!entry.isFile()) continue;
+          const srcPath = path.join(agentDirAbs, entry.name);
+          const lstat = await fs.lstat(srcPath);
+          if (lstat.isSymbolicLink()) continue;
+          await fs.mkdir(backupDir, { recursive: true });
+          const safeName = `${agentDir}_${entry.name}`;
+          await fs.copyFile(srcPath, path.join(backupDir, safeName));
+        }
+        await fs.rm(agentDirAbs, { recursive: true, force: true });
+      }
+    }
+
+    // opencode also writes a standalone config file
+    if (target === "opencode") {
+      try { await fs.unlink(path.join(root, "opencode.json")); } catch {}
+    }
+  }
+}
+
 async function pickTemplateInteractively(): Promise<string> {
   const result = await select({
     message: "Which template would you like to use?",
@@ -236,6 +283,7 @@ export default defineCommand({
     await backupFiles(root, detected);
     await removeDeprecatedFiles(root);
     await migrateRuleAndSkillFiles(root);
+    await cleanupUnselectedAgentDirs(root, presentTargets, selectedTargets);
 
     const config: Config = { version: 1, targets: makeTargets(...selectedTargets) };
     await writeConfig(root, config);
