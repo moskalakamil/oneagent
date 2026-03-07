@@ -10,6 +10,7 @@ const main = defineCommand({
     init: () => import("./commands/init.ts").then((r) => r.default),
     generate: () => import("./commands/generate.ts").then((r) => r.default),
     status: () => import("./commands/status.ts").then((r) => r.default),
+    targets: () => import("./commands/targets.ts").then((r) => r.default),
   },
 });
 
