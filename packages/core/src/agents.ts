@@ -64,7 +64,7 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
     target: "copilot",
     displayName: "GitHub Copilot",
     hint: ".github/instructions/*.instructions.md",
-    detectIndicators: [".github/copilot-instructions.md", ".github"],
+    detectIndicators: [".github/copilot-instructions.md", ".github/instructions"],
     mainFile: ".github/copilot-instructions.md",
     skillsDir: ".github/skills",
     // rules: generated as <name>.instructions.md files, not symlinks
