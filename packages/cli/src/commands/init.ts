@@ -131,6 +131,23 @@ async function backupFiles(root: string, files: DetectedFile[]): Promise<void> {
   }
 }
 
+async function backupDirRecursive(srcDir: string, backupDir: string, prefix: string, root: string): Promise<void> {
+  let entries: import("fs").Dirent[];
+  try { entries = await fs.readdir(srcDir, { withFileTypes: true }); } catch { return; }
+  for (const entry of entries) {
+    const srcPath = path.join(srcDir, entry.name);
+    const lstat = await fs.lstat(srcPath);
+    if (lstat.isSymbolicLink()) continue;
+    if (lstat.isDirectory()) {
+      await backupDirRecursive(srcPath, backupDir, `${prefix}_${entry.name}`, root);
+    } else if (lstat.isFile()) {
+      await fs.mkdir(backupDir, { recursive: true });
+      const safeName = `${prefix}_${entry.name}`;
+      await fs.copyFile(srcPath, path.join(backupDir, safeName));
+    }
+  }
+}
+
 async function cleanupUnselectedAgentDirs(
   root: string,
   presentTargets: AgentTarget[],
@@ -155,25 +172,21 @@ async function cleanupUnselectedAgentDirs(
       let stat;
       try { stat = await fs.lstat(agentDirAbs); } catch { /* doesn't exist */ }
       if (stat && stat.isDirectory() && !stat.isSymbolicLink()) {
-        // Backup any remaining non-symlink files before removing
-        let entries: import("fs").Dirent[] = [];
-        try { entries = await fs.readdir(agentDirAbs, { withFileTypes: true }); } catch {}
-        for (const entry of entries) {
-          if (!entry.isFile()) continue;
-          const srcPath = path.join(agentDirAbs, entry.name);
-          const lstat = await fs.lstat(srcPath);
-          if (lstat.isSymbolicLink()) continue;
-          await fs.mkdir(backupDir, { recursive: true });
-          const safeName = `${agentDir}_${entry.name}`;
-          await fs.copyFile(srcPath, path.join(backupDir, safeName));
-        }
+        // Recursively backup all non-symlink files before removing
+        await backupDirRecursive(agentDirAbs, backupDir, agentDir, root);
         await fs.rm(agentDirAbs, { recursive: true, force: true });
       }
     }
 
-    // opencode also writes a standalone config file
+    // opencode also writes a standalone config file — backup before removing
     if (target === "opencode") {
-      try { await fs.unlink(path.join(root, "opencode.json")); } catch {}
+      const opPath = path.join(root, "opencode.json");
+      try {
+        const content = await fs.readFile(opPath, "utf-8");
+        await fs.mkdir(backupDir, { recursive: true });
+        await fs.writeFile(path.join(backupDir, "opencode.json"), content);
+      } catch { /* file doesn't exist */ }
+      try { await fs.unlink(opPath); } catch {}
     }
   }
 }
