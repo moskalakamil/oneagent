@@ -9,12 +9,27 @@ export async function ensureDir(dirPath: string): Promise<void> {
 
 export async function createSymlink(symlinkPath: string, target: string): Promise<void> {
   await ensureDir(path.dirname(symlinkPath));
+
+  // Skip if already a correct symlink — avoids unnecessary rm/create that can
+  // race with external filesystem watchers (e.g. Cursor IDE recreating .cursor/rules)
   try {
-    await fs.rm(symlinkPath, { recursive: true });
+    const stat = await fs.lstat(symlinkPath);
+    if (stat.isSymbolicLink() && (await fs.readlink(symlinkPath)) === target) return;
   } catch {
-    // doesn't exist — that's fine
+    // path doesn't exist — proceed
   }
-  await fs.symlink(target, symlinkPath);
+
+  // Retry up to 3 times: external tools can recreate the path between our rm
+  // and symlink calls, causing EEXIST and macOS conflict copies (e.g. "rules 2")
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await fs.rm(symlinkPath, { recursive: true, force: true });
+    try {
+      await fs.symlink(target, symlinkPath);
+      return;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "EEXIST" || attempt === 2) throw err;
+    }
+  }
 }
 
 function relativeTarget(symlinkPath: string, targetAbsPath: string): string {
@@ -85,8 +100,9 @@ async function migrateFilesFromDir(srcDir: string, destDir: string, root: string
     return; // srcDir doesn't exist — no-op
   }
   for (const entry of entries) {
-    if (!entry.isFile()) continue; // skip symlinks and subdirs
     const srcFile = path.join(srcDir, entry.name);
+    const fileStat = await fs.lstat(srcFile);
+    if (!fileStat.isFile()) continue; // only real files — skip symlinks and subdirs
     const destFile = path.join(destDir, entry.name);
 
     let destExists = false;
@@ -137,6 +153,9 @@ export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
   for (const def of AGENT_DEFINITIONS) {
     if (def.rulesDir) await migrateAndRemoveDir(path.join(root, def.rulesDir), destRules, root);
   }
+  for (const def of AGENT_DEFINITIONS) {
+    if (def.skillsDir) await migrateAndRemoveDir(path.join(root, def.skillsDir), destSkills, root);
+  }
   // .agents/skills — standard skills.sh path, not represented in agent definitions
   await migrateAndRemoveDir(path.join(root, ".agents/skills"), destSkills, root);
   for (const def of AGENT_DEFINITIONS) {
@@ -145,7 +164,10 @@ export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
 }
 
 export async function createAllSymlinks(entries: SymlinkEntry[]): Promise<void> {
-  for (const e of entries) {
+  // Deduplicate by symlink path — last entry wins
+  const deduped = new Map<string, SymlinkEntry>();
+  for (const e of entries) deduped.set(e.symlinkPath, e);
+  for (const e of deduped.values()) {
     await createSymlink(e.symlinkPath, e.target);
   }
 }

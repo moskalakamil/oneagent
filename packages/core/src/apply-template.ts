@@ -107,28 +107,28 @@ export interface SkillInstallResult {
 }
 
 // Phase 2: installs skills via `npx skills add <repo> --skill <name>`.
-// All skills are installed in parallel. Call this AFTER generate() so agent directories exist.
+// Skills are installed sequentially to avoid race conditions — each `npx skills add` call
+// sets up agent directories and running them in parallel causes "skills 2" naming conflicts.
+// Call this AFTER generate() so agent directories exist.
 // Never throws — failed skills are collected and returned in the result.
 export async function installTemplateSkills(
   root: string,
   template: TemplateDefinition,
 ): Promise<SkillInstallResult> {
-  const results = await Promise.all(
-    template.skills.map(async (entry) => {
-      try {
-        await execFileAsync("npx", ["skills", "add", entry.repo, "--skill", entry.skill, "--agent", "universal", "--yes"], { cwd: root });
-        return { entry, ok: true as const };
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : String(err);
-        return { entry, ok: false as const, reason };
-      }
-    }),
-  );
+  const installed: SkillEntry[] = [];
+  const failed: Array<{ entry: SkillEntry; reason: string }> = [];
 
-  return {
-    installed: results.filter((r) => r.ok).map((r) => r.entry),
-    failed: results.filter((r) => !r.ok).map((r) => ({ entry: r.entry, reason: (r as { reason: string }).reason })),
-  };
+  for (const entry of template.skills) {
+    try {
+      await execFileAsync("npx", ["skills", "add", entry.repo, "--skill", entry.skill, "--agent", "universal", "--yes"], { cwd: root });
+      installed.push(entry);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      failed.push({ entry, reason });
+    }
+  }
+
+  return { installed, failed };
 }
 
 export interface PluginInstallResult {
@@ -192,22 +192,41 @@ export async function installTemplatePlugins(
 
 // Fetches a template from a GitHub URL.
 // Expects the repository to contain: template.yml, instructions.md, and optionally rules/*.md
+// When no branch is specified in the URL, tries "main" then "master" as fallback.
 export async function fetchTemplateFromGitHub(url: string): Promise<TemplateDefinition> {
-  // Convert GitHub URL to raw content base URL
-  // e.g. https://github.com/owner/repo → https://raw.githubusercontent.com/owner/repo/main
-  const rawBase = githubUrlToRawBase(url);
+  const { owner, repo, branch, subdir } = parseGitHubUrl(url);
+  const branchExplicit = url.includes("/tree/");
+  const branchesToTry = branchExplicit ? [branch] : [branch, "master"];
 
-  const [yamlText, instructions] = await Promise.all([
-    fetchText(`${rawBase}/template.yml`),
-    fetchText(`${rawBase}/instructions.md`),
-  ]);
+  let rawBase: string | undefined;
+  let yamlText: string | undefined;
+  let instructions: string | undefined;
+  let lastError: unknown;
 
-  const { name, description, skills, plugins } = parseTemplateYaml(yamlText);
+  for (const b of branchesToTry) {
+    const base = `https://raw.githubusercontent.com/${owner}/${repo}/${b}${subdir ? `/${subdir}` : ""}`;
+    try {
+      [yamlText, instructions] = await Promise.all([
+        fetchText(`${base}/template.yml`),
+        fetchText(`${base}/instructions.md`),
+      ]);
+      rawBase = base;
+      break;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  if (!rawBase || yamlText === undefined || instructions === undefined) {
+    throw lastError ?? new Error(`Could not fetch template from ${url}`);
+  }
+
+  const { name, description, skills, plugins } = parseTemplateYaml(yamlText!);
 
   // Try to list rules via GitHub API
   const rules = await fetchGitHubRules(url);
 
-  return { name, description, skills, plugins, instructions, rules };
+  return { name, description, skills, plugins, instructions: instructions!, rules };
 }
 
 async function fetchText(url: string): Promise<string> {
