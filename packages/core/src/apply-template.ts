@@ -192,41 +192,38 @@ export async function installTemplatePlugins(
 
 // Fetches a template from a GitHub URL.
 // Expects the repository to contain: template.yml, instructions.md, and optionally rules/*.md
-// When no branch is specified in the URL, tries "main" then "master" as fallback.
+// When no branch is specified in the URL, queries the GitHub API for the default branch.
 export async function fetchTemplateFromGitHub(url: string): Promise<TemplateDefinition> {
   const { owner, repo, branch, subdir } = parseGitHubUrl(url);
   const branchExplicit = url.includes("/tree/");
-  const branchesToTry = branchExplicit ? [branch] : [branch, "master"];
 
-  let rawBase: string | undefined;
-  let yamlText: string | undefined;
-  let instructions: string | undefined;
-  let lastError: unknown;
+  const resolvedBranch = branchExplicit ? branch : await fetchDefaultBranch(owner, repo);
+  const rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${resolvedBranch}${subdir ? `/${subdir}` : ""}`;
 
-  for (const b of branchesToTry) {
-    const base = `https://raw.githubusercontent.com/${owner}/${repo}/${b}${subdir ? `/${subdir}` : ""}`;
-    try {
-      [yamlText, instructions] = await Promise.all([
-        fetchText(`${base}/template.yml`),
-        fetchText(`${base}/instructions.md`),
-      ]);
-      rawBase = base;
-      break;
-    } catch (err) {
-      lastError = err;
-    }
-  }
+  const [yamlText, instructions] = await Promise.all([
+    fetchText(`${rawBase}/template.yml`),
+    fetchText(`${rawBase}/instructions.md`),
+  ]);
 
-  if (!rawBase || yamlText === undefined || instructions === undefined) {
-    throw lastError ?? new Error(`Could not fetch template from ${url}`);
-  }
-
-  const { name, description, skills, plugins } = parseTemplateYaml(yamlText!);
+  const { name, description, skills, plugins } = parseTemplateYaml(yamlText);
 
   // Try to list rules via GitHub API
   const rules = await fetchGitHubRules(url);
 
-  return { name, description, skills, plugins, instructions: instructions!, rules };
+  return { name, description, skills, plugins, instructions, rules };
+}
+
+async function fetchDefaultBranch(owner: string, repo: string): Promise<string> {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+      headers: { Accept: "application/vnd.github.v3+json" },
+    });
+    if (!response.ok) return "main";
+    const data = (await response.json()) as { default_branch?: string };
+    return data.default_branch ?? "main";
+  } catch {
+    return "main";
+  }
 }
 
 async function fetchText(url: string): Promise<string> {
