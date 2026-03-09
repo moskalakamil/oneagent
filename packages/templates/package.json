@@ -1,6 +1,6 @@
 {
   "name": "@moskala/oneagent-templates",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "Built-in templates for oneagent",
   "license": "MIT",
