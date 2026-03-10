@@ -9,6 +9,7 @@ import {
   activeTargets,
   generate,
   AGENT_DEFINITIONS,
+  ONEAGENT_DIR,
   type AgentTarget,
 } from "@moskala/oneagent-core";
 
@@ -47,7 +48,7 @@ async function backupDirRecursive(srcDir: string, backupDir: string, prefix: str
 
 async function cleanupRemovedTargets(root: string, removed: AgentTarget[]): Promise<void> {
   if (removed.length === 0) return;
-  const backupDir = path.join(root, ".oneagent/backup");
+  const backupDir = path.join(root, ONEAGENT_DIR, "backup");
 
   for (const target of removed) {
     const def = AGENT_DEFINITIONS.find((d) => d.target === target)!;
@@ -91,7 +92,7 @@ export default defineCommand({
     try {
       config = await readConfig(root);
     } catch {
-      console.error("Error: No .oneagent/config.yml found. Run `oneagent init` first.");
+      console.error(`Error: No ${ONEAGENT_DIR}/config.yml found. Run \`oneagent init\` first.`);
       process.exit(1);
     }
 
@@ -144,7 +145,7 @@ export default defineCommand({
     note(lines.map((l) => `  • ${l}`).join("\n"), "Targets updated");
 
     if (removed.length > 0) {
-      log.info("Removed agent files backed up to .oneagent/backup/");
+      log.info(`Removed agent files backed up to ${ONEAGENT_DIR}/backup/`);
     }
 
     outro("Run `oneagent status` to verify your setup.");

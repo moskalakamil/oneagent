@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs/promises";
 import { defineCommand } from "citty";
 import { confirm, isCancel, note, outro, spinner } from "@clack/prompts";
-import { readConfig, generate, detectGenerateCollisions, migrateRuleAndSkillFiles } from "@moskala/oneagent-core";
+import { readConfig, generate, detectGenerateCollisions, migrateRuleAndSkillFiles, ONEAGENT_DIR } from "@moskala/oneagent-core";
 
 export default defineCommand({
   meta: {
@@ -16,7 +16,7 @@ export default defineCommand({
     try {
       config = await readConfig(root);
     } catch {
-      console.error("Error: No .oneagent/config.yml found. Run `oneagent init` first.");
+      console.error(`Error: No ${ONEAGENT_DIR}/config.yml found. Run \`oneagent init\` first.`);
       process.exit(1);
     }
 
@@ -24,7 +24,7 @@ export default defineCommand({
 
     // Auto-backup main instruction files (CLAUDE.md, AGENTS.md, etc.) — no prompt
     if (mainFiles.length > 0) {
-      const backupDir = path.join(root, ".oneagent/backup");
+      const backupDir = path.join(root, ONEAGENT_DIR, "backup");
       await fs.mkdir(backupDir, { recursive: true });
       for (const file of mainFiles) {
         const safeName = file.relativePath.replace(/\//g, "_");
@@ -39,7 +39,7 @@ export default defineCommand({
         "These rule/skill files are not dotai symlinks",
       );
       const proceed = await confirm({
-        message: "Move them to .oneagent/ and replace with symlinks?",
+        message: `Move them to ${ONEAGENT_DIR}/ and replace with symlinks?`,
       });
       if (isCancel(proceed) || !proceed) {
         outro("Aborted.");

@@ -1,9 +1,10 @@
 import path from "path";
 import fs from "fs/promises";
 import type { RuleFile } from "./types.ts";
+import { ONEAGENT_DIR } from "./constants.ts";
 
 export async function readRules(root: string): Promise<RuleFile[]> {
-  const rulesDir = path.join(root, ".oneagent/rules");
+  const rulesDir = path.join(root, ONEAGENT_DIR, "rules");
   try {
     const files = await fs.readdir(rulesDir);
     return files

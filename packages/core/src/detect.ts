@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs/promises";
 import type { DetectedFile } from "./types.ts";
 import { AGENT_DEFINITIONS } from "./agents.ts";
+import { ONEAGENT_DIR } from "./constants.ts";
 
 export const AGENT_FILES = [
   "CLAUDE.md",
@@ -20,7 +21,7 @@ export async function readDetectedFile(root: string, rel: string): Promise<Detec
     if (stat.isSymbolicLink()) {
       const linkTarget = await fs.readlink(absolutePath);
       const resolved = path.resolve(path.dirname(absolutePath), linkTarget);
-      if (resolved.startsWith(path.join(root, ".one"))) return null;
+      if (resolved.startsWith(path.join(root, ONEAGENT_DIR))) return null;
     }
 
     const content = await fs.readFile(absolutePath, "utf-8");

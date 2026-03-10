@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs/promises";
 import type { AgentTarget, SymlinkCheck, SymlinkEntry } from "./types.ts";
 import { AGENT_DEFINITIONS } from "./agents.ts";
+import { ONEAGENT_DIR } from "./constants.ts";
 
 export async function ensureDir(dirPath: string): Promise<void> {
   await fs.mkdir(dirPath, { recursive: true });
@@ -37,7 +38,7 @@ function relativeTarget(symlinkPath: string, targetAbsPath: string): string {
 }
 
 export function buildMainSymlinks(root: string, targets: AgentTarget[]): SymlinkEntry[] {
-  const instructionsAbs = path.join(root, ".oneagent/instructions.md");
+  const instructionsAbs = path.join(root, ONEAGENT_DIR, "instructions.md");
   const seen = new Map<string, SymlinkEntry>();
 
   for (const target of targets) {
@@ -56,7 +57,7 @@ export function buildMainSymlinks(root: string, targets: AgentTarget[]): Symlink
 }
 
 export function buildRulesSymlinks(root: string, targets: AgentTarget[]): SymlinkEntry[] {
-  const targetAbs = path.join(root, ".oneagent/rules");
+  const targetAbs = path.join(root, ONEAGENT_DIR, "rules");
   return AGENT_DEFINITIONS
     .filter((d) => targets.includes(d.target) && d.rulesDir)
     .map((d) => {
@@ -66,7 +67,7 @@ export function buildRulesSymlinks(root: string, targets: AgentTarget[]): Symlin
 }
 
 export function buildSkillSymlinks(root: string, targets: AgentTarget[]): SymlinkEntry[] {
-  const targetAbs = path.join(root, ".oneagent/skills");
+  const targetAbs = path.join(root, ONEAGENT_DIR, "skills");
   return AGENT_DEFINITIONS
     .filter((d) => targets.includes(d.target) && d.skillsDir)
     .map((d) => {
@@ -76,7 +77,7 @@ export function buildSkillSymlinks(root: string, targets: AgentTarget[]): Symlin
 }
 
 export function buildCommandSymlinks(root: string, targets: AgentTarget[]): SymlinkEntry[] {
-  const targetAbs = path.join(root, ".oneagent/commands");
+  const targetAbs = path.join(root, ONEAGENT_DIR, "commands");
   return AGENT_DEFINITIONS
     .filter((d) => targets.includes(d.target) && d.commandsDir)
     .map((d) => {
@@ -87,7 +88,7 @@ export function buildCommandSymlinks(root: string, targets: AgentTarget[]): Syml
 
 export function buildAgentsDirSymlinks(root: string): SymlinkEntry[] {
   const symlinkPath = path.join(root, ".agents/skills");
-  const targetAbs = path.join(root, ".oneagent/skills");
+  const targetAbs = path.join(root, ONEAGENT_DIR, "skills");
   return [{ symlinkPath, target: relativeTarget(symlinkPath, targetAbs), label: ".agents/skills" }];
 }
 
@@ -121,7 +122,7 @@ async function migrateFilesFromDir(srcDir: string, destDir: string, root: string
       ]);
       if (srcContent !== destContent) {
         // Different content — backup source before deleting
-        const backupDir = path.join(root, ".oneagent/backup");
+        const backupDir = path.join(root, ONEAGENT_DIR, "backup");
         await fs.mkdir(backupDir, { recursive: true });
         const safeName = path.relative(root, srcFile).replace(/\//g, "_");
         await fs.writeFile(path.join(backupDir, safeName), srcContent);
@@ -146,9 +147,9 @@ async function migrateAndRemoveDir(src: string, dest: string, root: string): Pro
 }
 
 export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
-  const destRules = path.join(root, ".oneagent/rules");
-  const destSkills = path.join(root, ".oneagent/skills");
-  const destCommands = path.join(root, ".oneagent/commands");
+  const destRules = path.join(root, ONEAGENT_DIR, "rules");
+  const destSkills = path.join(root, ONEAGENT_DIR, "skills");
+  const destCommands = path.join(root, ONEAGENT_DIR, "commands");
   // Derive migration sources from agent definitions — sequential to avoid same-name conflicts.
   for (const def of AGENT_DEFINITIONS) {
     if (def.rulesDir) await migrateAndRemoveDir(path.join(root, def.rulesDir), destRules, root);

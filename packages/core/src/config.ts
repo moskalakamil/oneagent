@@ -2,8 +2,9 @@ import { parse, stringify } from "yaml";
 import path from "path";
 import fs from "fs/promises";
 import type { AgentTarget, Config } from "./types.ts";
+import { ONEAGENT_DIR } from "./constants.ts";
 
-const CONFIG_REL = ".oneagent/config.yml";
+const CONFIG_REL = `${ONEAGENT_DIR}/config.yml`;
 
 export const ALL_AGENT_TARGETS: AgentTarget[] = ["claude", "cursor", "windsurf", "opencode", "copilot"];
 
