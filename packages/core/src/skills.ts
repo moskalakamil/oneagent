@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs/promises";
 import type { SkillFile } from "./types.ts";
+import { ONEAGENT_DIR } from "./constants.ts";
 
 const VALID_MODES = ["ask", "edit", "agent"] as const;
 type SkillMode = (typeof VALID_MODES)[number];
@@ -29,7 +30,7 @@ export async function readSkillFile(filePath: string): Promise<SkillFile> {
 }
 
 export async function readSkills(root: string): Promise<SkillFile[]> {
-  const skillsDir = path.join(root, ".oneagent/skills");
+  const skillsDir = path.join(root, ONEAGENT_DIR, "skills");
   try {
     const files = await fs.readdir(skillsDir);
     const mdFiles = files.filter((f) => f.endsWith(".md"));

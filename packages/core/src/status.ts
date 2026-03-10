@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import type { Config, GeneratedFileCheck, OpenCodeCheck, RuleFile, StatusResult } from "./types.ts";
 import { activeTargets } from "./config.ts";
+import { ONEAGENT_DIR } from "./constants.ts";
 import { readRules } from "./rules.ts";
 import { readSkills } from "./skills.ts";
 import { buildMainSymlinks, buildRulesSymlinks, buildSkillSymlinks, buildCommandSymlinks, buildAgentsDirSymlinks, checkSymlink } from "./symlinks.ts";
@@ -26,7 +27,7 @@ export async function checkOpencodeStatus(
 ): Promise<OpenCodeCheck> {
   const existing = await readOpencode(root);
   if (!existing) return { exists: false, valid: false };
-  return { exists: true, valid: existing["instructions"] === ".oneagent/instructions.md" };
+  return { exists: true, valid: existing["instructions"] === `${ONEAGENT_DIR}/instructions.md` };
 }
 
 export async function checkCopilotPrompt(root: string, skill: import("./types.ts").SkillFile): Promise<GeneratedFileCheck> {

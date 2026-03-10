@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { readConfig, checkStatus, activeTargets } from "@moskala/oneagent-core";
+import { readConfig, checkStatus, activeTargets, ONEAGENT_DIR } from "@moskala/oneagent-core";
 
 export default defineCommand({
   meta: {
@@ -13,7 +13,7 @@ export default defineCommand({
     try {
       config = await readConfig(root);
     } catch {
-      console.error("Error: No .oneagent/config.yml found. Run `oneagent init` first.");
+      console.error(`Error: No ${ONEAGENT_DIR}/config.yml found. Run \`oneagent init\` first.`);
       process.exit(1);
     }
 

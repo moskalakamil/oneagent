@@ -4,6 +4,7 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import type { AgentTarget } from "./types.ts";
 import { addOpenCodePlugin } from "./opencode.ts";
+import { ONEAGENT_DIR } from "./constants.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -89,7 +90,7 @@ export function parsePluginsFromYaml(yamlText: string): TemplatePlugin[] {
 // Phase 1: writes instructions.md and rules/*.md.
 // Call this BEFORE generate() so symlinks to rules are created.
 export async function applyTemplateFiles(root: string, template: TemplateDefinition): Promise<void> {
-  const oneagentDir = path.join(root, ".oneagent");
+  const oneagentDir = path.join(root, ONEAGENT_DIR);
 
   await fs.mkdir(path.join(oneagentDir, "rules"), { recursive: true });
   await fs.mkdir(path.join(oneagentDir, "skills"), { recursive: true });

@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs/promises";
 import type { RuleFile } from "./types.ts";
+import { ONEAGENT_DIR } from "./constants.ts";
 
 export async function readOpencode(root: string): Promise<Record<string, unknown> | null> {
   try {
@@ -14,7 +15,7 @@ export async function readOpencode(root: string): Promise<Record<string, unknown
 export function buildOpencodeConfig(existing: Record<string, unknown> | null): object {
   return {
     ...existing,
-    instructions: ".oneagent/instructions.md",
+    instructions: `${ONEAGENT_DIR}/instructions.md`,
   };
 }
 

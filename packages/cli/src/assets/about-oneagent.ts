@@ -1,6 +1,8 @@
+import { ONEAGENT_DIR } from "@moskala/oneagent-core";
+
 export const ABOUT_ONEAGENT_CONTENT = `---
 name: about-oneagent
-description: Explains how AI configuration is managed in this project using oneagent. Use when working with the .oneagent/ directory, adding or modifying rules or skills, or when files like CLAUDE.md, AGENTS.md, .cursor/rules/, or .github/instructions/ are mentioned.
+description: Explains how AI configuration is managed in this project using oneagent. Use when working with the ${ONEAGENT_DIR}/ directory, adding or modifying rules or skills, or when files like CLAUDE.md, AGENTS.md, .cursor/rules/, or .github/instructions/ are mentioned.
 applyTo: "**"
 globs: "**"
 alwaysApply: true
@@ -13,18 +15,18 @@ Rules, skills, and instructions are maintained in a single source of truth and a
 ## Directory Structure
 
 \`\`\`
-.oneagent/
+${ONEAGENT_DIR}/
   instructions.md   # Main project instructions (source for CLAUDE.md, AGENTS.md, etc.)
   rules/            # Rules distributed to all configured agents
   skills/           # Skills distributed as slash commands / agent tools
 \`\`\`
 
 > Do NOT edit files in \`.claude/\`, \`.cursor/\`, \`.windsurf/\`, \`.opencode/\`, \`.github/instructions/\` directly.
-> These are auto-generated or symlinked from \`.oneagent/\` and will be overwritten on next \`oneagent generate\`.
+> These are auto-generated or symlinked from \`${ONEAGENT_DIR}/\` and will be overwritten on next \`oneagent generate\`.
 
 ## Adding a Rule
 
-Create a \`.md\` file in \`.oneagent/rules/\`. Each agent reads frontmatter differently — use all relevant fields:
+Create a \`.md\` file in \`${ONEAGENT_DIR}/rules/\`. Each agent reads frontmatter differently — use all relevant fields:
 
 **Rule that applies to all files (recommended for general guidelines):**
 
@@ -70,7 +72,7 @@ Then run \`oneagent generate\` to distribute the rule to all configured agents.
 
 ## Adding a Skill
 
-Create a \`.md\` file in \`.oneagent/skills/\`:
+Create a \`.md\` file in \`${ONEAGENT_DIR}/skills/\`:
 
 \`\`\`md
 ---

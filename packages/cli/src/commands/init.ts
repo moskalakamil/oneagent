@@ -27,6 +27,7 @@ import {
   installTemplateSkills,
   installTemplatePlugins,
   fetchTemplateFromGitHub,
+  ONEAGENT_DIR,
   type PluginInstallResult,
   type SkillInstallResult,
   AGENT_DEFINITIONS,
@@ -54,7 +55,7 @@ async function chooseContent(detected: DetectedFile[]): Promise<string> {
   if (detected.length === 1) {
     const file = detected[0]!;
     const result = await confirm({
-      message: `Found ${file.relativePath} (${timeAgo(file.modifiedAt)}). Import its content into .oneagent/instructions.md?`,
+      message: `Found ${file.relativePath} (${timeAgo(file.modifiedAt)}). Import its content into ${ONEAGENT_DIR}/instructions.md?`,
     });
     if (isCancel(result)) cancelAndExit();
     return result ? file.content : "";
@@ -123,7 +124,7 @@ async function pickTargets(initialValues: AgentTarget[]): Promise<AgentTarget[]>
 
 async function backupFiles(root: string, files: DetectedFile[]): Promise<void> {
   if (files.length === 0) return;
-  const backupDir = path.join(root, ".oneagent/backup");
+  const backupDir = path.join(root, ONEAGENT_DIR, "backup");
   await fs.mkdir(backupDir, { recursive: true });
   for (const file of files) {
     const safeName = file.relativePath.replace(/\//g, "_");
@@ -156,7 +157,7 @@ async function cleanupUnselectedAgentDirs(
   const unselected = presentTargets.filter((t) => !selectedTargets.includes(t));
   if (unselected.length === 0) return;
 
-  const backupDir = path.join(root, ".oneagent/backup");
+  const backupDir = path.join(root, ONEAGENT_DIR, "backup");
 
   for (const target of unselected) {
     const def = AGENT_DEFINITIONS.find((d) => d.target === target)!;
@@ -287,11 +288,11 @@ export default defineCommand({
     const selectedTargets = await pickTargets(presentTargets);
 
     const s = spinner();
-    s.start("Setting up .oneagent/ directory...");
+    s.start(`Setting up ${ONEAGENT_DIR}/ directory...`);
 
-    await fs.mkdir(path.join(root, ".oneagent/rules"), { recursive: true });
-    await fs.mkdir(path.join(root, ".oneagent/skills"), { recursive: true });
-    await fs.mkdir(path.join(root, ".oneagent/commands"), { recursive: true });
+    await fs.mkdir(path.join(root, ONEAGENT_DIR, "rules"), { recursive: true });
+    await fs.mkdir(path.join(root, ONEAGENT_DIR, "skills"), { recursive: true });
+    await fs.mkdir(path.join(root, ONEAGENT_DIR, "commands"), { recursive: true });
 
     await backupFiles(root, detected);
     await removeDeprecatedFiles(root);
@@ -306,16 +307,16 @@ export default defineCommand({
     } else {
       const instructionsContent =
         importedContent.trim() ? importedContent : "# Project Instructions\n\nAdd your AI instructions here.\n";
-      await fs.writeFile(path.join(root, ".oneagent/instructions.md"), instructionsContent);
+      await fs.writeFile(path.join(root, ONEAGENT_DIR, "instructions.md"), instructionsContent);
     }
-    await fs.writeFile(path.join(root, ".oneagent/rules/about-oneagent.md"), ABOUT_ONEAGENT_CONTENT, "utf-8");
+    await fs.writeFile(path.join(root, ONEAGENT_DIR, "rules", "about-oneagent.md"), ABOUT_ONEAGENT_CONTENT, "utf-8");
     s.stop("Directory structure created.");
 
     // Warn if commands exist: skills are broader and more powerful
-    const commandFiles = await fs.readdir(path.join(root, ".oneagent/commands")).catch(() => []);
+    const commandFiles = await fs.readdir(path.join(root, ONEAGENT_DIR, "commands")).catch(() => []);
     if (commandFiles.some((f) => f.endsWith(".md"))) {
       log.warn(
-        "Commands detected in .oneagent/commands/. Consider migrating to .oneagent/skills/ — skills are distributed to more agents and support richer features.",
+        `Commands detected in ${ONEAGENT_DIR}/commands/. Consider migrating to ${ONEAGENT_DIR}/skills/ — skills are distributed to more agents and support richer features.`,
       );
     }
 
@@ -325,7 +326,7 @@ export default defineCommand({
       const unsupported = selectedTargets.filter((t) => !commandsSupported.has(t));
       if (unsupported.length > 0) {
         const names = unsupported.map((t) => AGENT_DEFINITIONS.find((d) => d.target === t)!.displayName).join(", ");
-        log.warn(`Commands in .oneagent/commands/ will not be available in: ${names} — these agents do not support custom slash commands.`);
+        log.warn(`Commands in ${ONEAGENT_DIR}/commands/ will not be available in: ${names} — these agents do not support custom slash commands.`);
       }
     }
 
@@ -370,11 +371,11 @@ export default defineCommand({
               ? [`Installed ${pluginResult.installed.length} plugin(s): ${pluginResult.installed.map((p) => p.id).join(", ")}`]
               : []),
           ]
-        : ["Created .oneagent/instructions.md"]),
-      "Created .oneagent/rules/about-oneagent.md",
+        : [`Created ${ONEAGENT_DIR}/instructions.md`]),
+      `Created ${ONEAGENT_DIR}/rules/about-oneagent.md`,
       ...selectedTargets.map((t) => `Configured: ${t}`),
       ...(detected.length > 0
-        ? [`Backed up ${detected.length} file(s) to .oneagent/backup/`]
+        ? [`Backed up ${detected.length} file(s) to ${ONEAGENT_DIR}/backup/`]
         : []),
     ];
     note(lines.map((l) => `  • ${l}`).join("\n"), "Setup complete");

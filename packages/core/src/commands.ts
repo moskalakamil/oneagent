@@ -1,9 +1,10 @@
 import path from "path";
 import fs from "fs/promises";
 import type { CommandFile } from "./types.ts";
+import { ONEAGENT_DIR } from "./constants.ts";
 
 export async function readCommands(root: string): Promise<CommandFile[]> {
-  const commandsDir = path.join(root, ".oneagent/commands");
+  const commandsDir = path.join(root, ONEAGENT_DIR, "commands");
   try {
     const files = await fs.readdir(commandsDir);
     return files
