@@ -32,6 +32,7 @@ import {
   type PluginInstallResult,
   type SkillInstallResult,
   AGENT_DEFINITIONS,
+  ALL_AGENT_TARGETS,
   type AgentTarget,
   type Config,
   type DetectedFile,
@@ -191,6 +192,12 @@ export default defineCommand({
       type: "string",
       description: `Template to use: builtin name (${BUILTIN_TEMPLATE_NAMES.join("/")}) or GitHub URL`,
     },
+    yes: {
+      type: "boolean",
+      alias: "y",
+      description: "Skip prompts: auto-import detected files and select detected agents",
+      default: false,
+    },
   },
   async run({ args }) {
     intro("oneagent init");
@@ -226,12 +233,21 @@ export default defineCommand({
         note(message, "Error");
         process.exit(1);
       }
+    } else if (args.yes) {
+      // --yes: auto-import the most recently modified file
+      if (detected.length > 0) {
+        const newest = detected.toSorted((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime())[0]!;
+        importedContent = newest.content;
+        log.info(`Auto-importing content from ${newest.relativePath}`);
+      }
     } else {
       importedContent = await chooseContent(detected);
     }
 
     const presentTargets = await detectPresentTargets(root);
-    const selectedTargets = await pickTargets(presentTargets);
+    const selectedTargets = args.yes
+      ? (presentTargets.length > 0 ? presentTargets : ALL_AGENT_TARGETS.slice(0, 1) as AgentTarget[])
+      : await pickTargets(presentTargets);
 
     const s = spinner();
     s.start(`Setting up ${ONEAGENT_DIR}/ directory...`);

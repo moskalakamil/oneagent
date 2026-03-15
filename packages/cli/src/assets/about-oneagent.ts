@@ -86,7 +86,13 @@ Then run \`oneagent generate\` to distribute the skill.
 
 ## Commands
 
-- \`oneagent generate\` — sync all rules and skills to agent-specific directories
-- \`oneagent status\`   — verify that all symlinks and generated files are up to date
-- \`oneagent init\`     — initialize oneagent in a project (run once)
+- \`oneagent init\`           — initialize oneagent in a project (run once)
+- \`oneagent init --yes\`     — non-interactive init: auto-imports the most recently modified instructions file and auto-selects detected agents
+- \`oneagent generate\`       — sync all rules and skills to agent-specific directories
+- \`oneagent status\`         — verify that all symlinks and generated files are up to date
+- \`oneagent add <target>\`   — add an AI agent target (claude, cursor, windsurf, opencode, copilot)
+- \`oneagent remove <target>\` — remove an AI agent target
+- \`oneagent targets\`        — interactively manage which agents are configured
+
+> **Tip:** If this project has existing instruction files (CLAUDE.md, AGENTS.md, .cursorrules, etc.) but oneagent is not yet initialized, run \`oneagent init --yes\` to automatically import the most recent file and set up oneagent based on detected agents.
 `;
