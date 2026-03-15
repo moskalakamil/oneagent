@@ -103,7 +103,19 @@ async function migrateFilesFromDir(srcDir: string, destDir: string, root: string
   for (const entry of entries) {
     const srcFile = path.join(srcDir, entry.name);
     const fileStat = await fs.lstat(srcFile);
-    if (!fileStat.isFile()) continue; // only real files — skip symlinks and subdirs
+    if (fileStat.isSymbolicLink()) continue;
+
+    // Move subdirectories as whole units (e.g. skills.sh skill packages)
+    if (fileStat.isDirectory()) {
+      const destSub = path.join(destDir, entry.name);
+      try { await fs.access(destSub); } catch {
+        await fs.mkdir(destDir, { recursive: true });
+        await fs.rename(srcFile, destSub);
+      }
+      continue;
+    }
+
+    if (!fileStat.isFile()) continue;
     const destFile = path.join(destDir, entry.name);
 
     let destExists = false;
