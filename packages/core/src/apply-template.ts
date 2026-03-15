@@ -132,6 +132,20 @@ export async function installTemplateSkills(
   return { installed, failed };
 }
 
+const BUILTIN_SKILL_REPO = "https://github.com/moskalakamil/oneagent";
+const BUILTIN_SKILL_NAME = "oneagent";
+
+// Installs the built-in oneagent skill that teaches agents how to work with the .oneagent/ directory.
+// Never throws — returns true if installed, false if failed.
+export async function installBuiltinSkill(root: string): Promise<boolean> {
+  try {
+    await execFileAsync("npx", ["skills", "add", BUILTIN_SKILL_REPO, "--skill", BUILTIN_SKILL_NAME, "--agent", "universal", "--yes"], { cwd: root });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export interface PluginInstallResult {
   installed: TemplatePlugin[];
   manual: TemplatePlugin[];

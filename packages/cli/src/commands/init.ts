@@ -27,6 +27,7 @@ import {
   applyTemplateFiles,
   installTemplateSkills,
   installTemplatePlugins,
+  installBuiltinSkill,
   fetchTemplateFromGitHub,
   ONEAGENT_DIR,
   type PluginInstallResult,
@@ -44,7 +45,6 @@ import {
   BUILTIN_TEMPLATE_META,
 } from "@moskala/oneagent-templates";
 
-import { ABOUT_ONEAGENT_CONTENT } from "../assets/about-oneagent.ts";
 
 function cancelAndExit(): never {
   outro("Cancelled.");
@@ -271,7 +271,6 @@ export default defineCommand({
         importedContent.trim() ? importedContent : "# Project Instructions\n\nAdd your AI instructions here.\n";
       await fs.writeFile(path.join(root, ONEAGENT_DIR, "instructions.md"), instructionsContent);
     }
-    await fs.writeFile(path.join(root, ONEAGENT_DIR, "rules", "about-oneagent.md"), ABOUT_ONEAGENT_CONTENT, "utf-8");
     s.stop("Directory structure created.");
 
     // Warn if commands exist: skills are broader and more powerful
@@ -297,10 +296,19 @@ export default defineCommand({
     await generate(root, config);
     s2.stop("Done.");
 
+    const sSkill = spinner();
+    sSkill.start("Installing oneagent skill...");
+    const builtinInstalled = await installBuiltinSkill(root);
+    if (builtinInstalled) {
+      sSkill.stop("Installed oneagent skill.");
+    } else {
+      sSkill.stop("Could not install oneagent skill (skipped).");
+    }
+
     let skillResult: SkillInstallResult = { installed: [], failed: [] };
     if (template && template.skills.length > 0) {
       const s3 = spinner();
-      s3.start("Installing skills...");
+      s3.start("Installing template skills...");
       skillResult = await installTemplateSkills(root, template);
       s3.stop(`Installed ${skillResult.installed.length} skill(s).`);
       for (const f of skillResult.failed) {
@@ -334,7 +342,7 @@ export default defineCommand({
               : []),
           ]
         : [`Created ${ONEAGENT_DIR}/instructions.md`]),
-      `Created ${ONEAGENT_DIR}/rules/about-oneagent.md`,
+      ...(builtinInstalled ? [`Installed oneagent skill`] : []),
       ...selectedTargets.map((t) => `Configured: ${t}`),
       ...(detected.length > 0
         ? [`Backed up ${detected.length} file(s) to ${ONEAGENT_DIR}/backup/`]
