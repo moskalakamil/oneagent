@@ -30,16 +30,19 @@ export interface TemplateDefinition {
 // Parses name, description, skills and plugins from a template.yml string.
 // This is the single source of truth for the template.yml format — used by
 // both builtin template loading and GitHub URL template fetching.
-export function parseTemplateYaml(yamlText: string, fallbackName = "custom"): Pick<TemplateDefinition, "name" | "description" | "skills" | "plugins"> {
+export function parseTemplateYaml(yamlText: string, fallbackName = "custom"): Pick<TemplateDefinition, "name" | "description" | "skills" | "plugins"> & { extends?: string } {
   const nameMatch = yamlText.match(/^name:\s*(.+)$/m);
   const name = nameMatch?.[1]?.trim() ?? fallbackName;
 
   const descMatch = yamlText.match(/^description:\s*(.+)$/m);
   const description = descMatch?.[1]?.trim() ?? "";
 
+  const extendsMatch = yamlText.match(/^extends:\s*(.+)$/m);
+  const extendsValue = extendsMatch?.[1]?.trim();
+
   const skills = parseSkillsFromYaml(yamlText);
   const plugins = parsePluginsFromYaml(yamlText);
-  return { name, description, skills, plugins };
+  return { name, description, skills, plugins, ...(extendsValue ? { extends: extendsValue } : {}) };
 }
 
 // Parses the `skills:` block from a template.yml string.
@@ -85,6 +88,36 @@ export function parsePluginsFromYaml(yamlText: string): TemplatePlugin[] {
     }
   }
   return plugins;
+}
+
+// Resolves the `extends` field — loads parent template from builtin name or GitHub URL.
+// Merges skills, plugins, rules (parent first, then child).
+// Instructions are NOT inherited — each template has its own.
+export async function resolveExtends(
+  child: TemplateDefinition & { extends?: string },
+  resolveBuiltin?: (name: string) => Promise<TemplateDefinition | null>,
+): Promise<TemplateDefinition> {
+  if (!child.extends) return child;
+
+  let parent: TemplateDefinition;
+  if (child.extends.startsWith("https://")) {
+    parent = await fetchTemplateFromGitHub(child.extends);
+  } else if (resolveBuiltin) {
+    const resolved = await resolveBuiltin(child.extends);
+    if (!resolved) throw new Error(`Unknown builtin template: "${child.extends}"`);
+    parent = resolved;
+  } else {
+    throw new Error(`Cannot resolve extends: "${child.extends}"`);
+  }
+
+  return {
+    name: child.name,
+    description: child.description,
+    instructions: child.instructions,
+    skills: [...parent.skills, ...child.skills],
+    plugins: [...parent.plugins, ...child.plugins],
+    rules: [...parent.rules, ...child.rules],
+  };
 }
 
 // Phase 1: writes instructions.md and rules/*.md.
@@ -220,12 +253,13 @@ export async function fetchTemplateFromGitHub(url: string): Promise<TemplateDefi
     fetchText(`${rawBase}/instructions.md`),
   ]);
 
-  const { name, description, skills, plugins } = parseTemplateYaml(yamlText);
+  const parsed = parseTemplateYaml(yamlText);
 
   // Try to list rules via GitHub API
   const rules = await fetchGitHubRules(url);
 
-  return { name, description, skills, plugins, instructions, rules };
+  const base = { ...parsed, instructions, rules };
+  return resolveExtends(base);
 }
 
 async function fetchDefaultBranch(owner: string, repo: string): Promise<string> {

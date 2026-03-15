@@ -201,3 +201,54 @@ Follow the team coding standards documented in Notion.
 ```
 
 Skills, plugins, and rules are all optional.
+
+---
+
+## `extends`
+
+Templates can inherit from other templates using the `extends` field. The child template only needs to define what it **adds** — skills, plugins, and rules from the parent are merged automatically.
+
+```yaml
+name: my-react-template
+description: Our React starter
+extends: https://github.com/moskalakamil/oneagent-template
+
+skills:
+  - repo: https://github.com/anthropics/skills
+    skill: frontend-design
+plugins:
+  - target: claude
+    id: frontend-design@claude-plugins-official
+```
+
+### What `extends` accepts
+
+| Value | Example | Description |
+|-------|---------|-------------|
+| Builtin template name | `extends: default` | Inherits from one of the built-in templates (`default`, `react`, `react-native`) |
+| GitHub URL | `extends: https://github.com/org/template` | Inherits from a remote template (supports `/tree/branch/subdir` URLs) |
+
+### Merge behavior
+
+| Field | Behavior |
+|-------|----------|
+| `skills` | `[...parent.skills, ...own.skills]` |
+| `plugins` | `[...parent.plugins, ...own.plugins]` |
+| `rules` | `[...parent.rules, ...own.rules]` |
+| `instructions` | **Not inherited** — each template has its own `instructions.md` |
+
+### Chaining
+
+Extends is recursive. The built-in templates form a chain:
+
+```
+react-native → react → default
+```
+
+- `default` defines 7 skills and 9 plugins
+- `react` adds 7 skills and 2 plugins (total after merge: 14 skills, 11 plugins)
+- `react-native` adds 5 skills (total after merge: 19 skills, 11 plugins)
+
+### Limitations
+
+Remote templates (fetched from GitHub) can only extend other remote templates via URL — not built-in template names.

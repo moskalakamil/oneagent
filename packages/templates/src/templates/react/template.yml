@@ -1,20 +1,7 @@
 name: react
 description: React / Next.js project starter
+extends: default
 skills:
-  - repo: https://github.com/vercel-labs/skills
-    skill: find-skills
-  - repo: https://github.com/anthropics/skills
-    skill: skill-creator
-  - repo: https://github.com/github/awesome-copilot
-    skill: conventional-commit
-  - repo: https://github.com/oldwinter/skills
-    skill: github-cli
-  - repo: https://github.com/supercent-io/skills-template
-    skill: code-review
-  - repo: https://github.com/vercel-labs/agent-skills
-    skill: web-design-guidelines
-  - repo: https://github.com/coreyhaines31/marketingskills
-    skill: copywriting
   - repo: https://github.com/anthropics/skills
     skill: frontend-design
   - repo: https://github.com/vercel-labs/agent-skills
@@ -31,24 +18,6 @@ skills:
     skill: react-state-management
 plugins:
   - target: claude
-    id: context7@claude-plugins-official
-  - target: claude
-    id: superpowers@claude-plugins-official
-  - target: claude
-    id: code-simplifier@claude-plugins-official
-  - target: claude
-    id: security-guidance@claude-plugins-official
-  - target: claude
-    id: claude-md-management@claude-plugins-official
-  - target: claude
     id: frontend-design@claude-plugins-official
   - target: claude
     id: typescript-lsp@claude-plugins-official
-  - target: opencode
-    id: oh-my-opencode
-  - target: opencode
-    id: "@plannotator/opencode"
-  - target: opencode
-    id: "@openspoon/subtask2"
-  - target: opencode
-    id: micode

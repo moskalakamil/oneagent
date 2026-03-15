@@ -3,8 +3,8 @@ description: General programming starter
 skills:
   - repo: https://github.com/vercel-labs/skills
     skill: find-skills
-  - repo: https://github.com/anthropics/skills
-    skill: skill-creator
+  - repo: https://github.com/obra/superpowers
+    skill: writing-skills
   - repo: https://github.com/github/awesome-copilot
     skill: conventional-commit
   - repo: https://github.com/oldwinter/skills

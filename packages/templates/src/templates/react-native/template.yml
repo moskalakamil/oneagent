@@ -1,34 +1,7 @@
 name: react-native
 description: React Native / Expo project starter
+extends: react
 skills:
-  - repo: https://github.com/vercel-labs/skills
-    skill: find-skills
-  - repo: https://github.com/anthropics/skills
-    skill: skill-creator
-  - repo: https://github.com/github/awesome-copilot
-    skill: conventional-commit
-  - repo: https://github.com/oldwinter/skills
-    skill: github-cli
-  - repo: https://github.com/supercent-io/skills-template
-    skill: code-review
-  - repo: https://github.com/vercel-labs/agent-skills
-    skill: web-design-guidelines
-  - repo: https://github.com/coreyhaines31/marketingskills
-    skill: copywriting
-  - repo: https://github.com/anthropics/skills
-    skill: frontend-design
-  - repo: https://github.com/vercel-labs/agent-skills
-    skill: vercel-react-best-practices
-  - repo: https://github.com/vercel-labs/agent-skills
-    skill: vercel-composition-patterns
-  - repo: https://github.com/obra/superpowers
-    skill: brainstorming
-  - repo: https://github.com/coreyhaines31/marketingskills
-    skill: seo-audit
-  - repo: https://github.com/vercel-labs/next-skills
-    skill: next-best-practices
-  - repo: https://github.com/wshobson/agents
-    skill: react-state-management
   - repo: https://github.com/vercel-labs/agent-skills
     skill: vercel-react-native-skills
   - repo: https://github.com/callstackincubator/agent-skills
@@ -39,26 +12,3 @@ skills:
     skill: upgrading-expo
   - repo: https://github.com/conorluddy/ios-simulator-skill
     skill: ios-simulator-skill
-plugins:
-  - target: claude
-    id: context7@claude-plugins-official
-  - target: claude
-    id: superpowers@claude-plugins-official
-  - target: claude
-    id: code-simplifier@claude-plugins-official
-  - target: claude
-    id: security-guidance@claude-plugins-official
-  - target: claude
-    id: claude-md-management@claude-plugins-official
-  - target: claude
-    id: frontend-design@claude-plugins-official
-  - target: claude
-    id: typescript-lsp@claude-plugins-official
-  - target: opencode
-    id: oh-my-opencode
-  - target: opencode
-    id: "@plannotator/opencode"
-  - target: opencode
-    id: "@openspoon/subtask2"
-  - target: opencode
-    id: micode

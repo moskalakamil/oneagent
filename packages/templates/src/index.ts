@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs/promises";
 import { fileURLToPath } from "url";
-import { type TemplatePlugin, type TemplateDefinition, parseTemplateYaml } from "@moskala/oneagent-core";
+import { type TemplatePlugin, type TemplateDefinition, parseTemplateYaml, resolveExtends } from "@moskala/oneagent-core";
 
 export type { TemplatePlugin, TemplateDefinition };
 
@@ -19,7 +19,7 @@ async function loadTemplate(name: BuiltinTemplateName): Promise<TemplateDefiniti
     fs.readFile(path.join(templateDir, "instructions.md"), "utf-8"),
   ]);
 
-  const { description, skills, plugins } = parseTemplateYaml(yamlText, name);
+  const parsed = parseTemplateYaml(yamlText, name);
 
   const rulesDir = path.join(templateDir, "rules");
   let rules: Array<{ name: string; content: string }> = [];
@@ -37,7 +37,8 @@ async function loadTemplate(name: BuiltinTemplateName): Promise<TemplateDefiniti
     // No rules directory — fine
   }
 
-  return { name, description, skills, plugins, instructions, rules };
+  const base = { ...parsed, instructions, rules };
+  return resolveExtends(base, (n) => resolveBuiltinTemplate(n));
 }
 
 export async function resolveBuiltinTemplate(name: string): Promise<TemplateDefinition | null> {
