@@ -11,6 +11,8 @@ const main = defineCommand({
     generate: () => import("./commands/generate.ts").then((r) => r.default),
     status: () => import("./commands/status.ts").then((r) => r.default),
     targets: () => import("./commands/targets.ts").then((r) => r.default),
+    add: () => import("./commands/add.ts").then((r) => r.default),
+    remove: () => import("./commands/remove.ts").then((r) => r.default),
   },
 });
 

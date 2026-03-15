@@ -8,6 +8,7 @@ import {
   makeTargets,
   activeTargets,
   generate,
+  cleanupAgentDir,
   AGENT_DEFINITIONS,
   ONEAGENT_DIR,
   type AgentTarget,
@@ -28,56 +29,6 @@ async function detectPresentTargets(root: string): Promise<AgentTarget[]> {
     }),
   );
   return results.filter((t): t is AgentTarget => t !== null);
-}
-
-async function backupDirRecursive(srcDir: string, backupDir: string, prefix: string): Promise<void> {
-  let entries: import("fs").Dirent[];
-  try { entries = await fs.readdir(srcDir, { withFileTypes: true }); } catch { return; }
-  for (const entry of entries) {
-    const srcPath = path.join(srcDir, entry.name);
-    const lstat = await fs.lstat(srcPath);
-    if (lstat.isSymbolicLink()) continue;
-    if (lstat.isDirectory()) {
-      await backupDirRecursive(srcPath, backupDir, `${prefix}_${entry.name}`);
-    } else if (lstat.isFile()) {
-      await fs.mkdir(backupDir, { recursive: true });
-      await fs.copyFile(srcPath, path.join(backupDir, `${prefix}_${entry.name}`));
-    }
-  }
-}
-
-async function cleanupRemovedTargets(root: string, removed: AgentTarget[]): Promise<void> {
-  if (removed.length === 0) return;
-  const backupDir = path.join(root, ONEAGENT_DIR, "backup");
-
-  for (const target of removed) {
-    const def = AGENT_DEFINITIONS.find((d) => d.target === target)!;
-
-    const agentDir = [def.rulesDir, def.skillsDir, def.commandsDir]
-      .filter(Boolean)
-      .map((d) => d!.split("/")[0]!)
-      .find((d) => d !== ".github");
-
-    if (agentDir) {
-      const agentDirAbs = path.join(root, agentDir);
-      let stat;
-      try { stat = await fs.lstat(agentDirAbs); } catch { /* doesn't exist */ }
-      if (stat && stat.isDirectory() && !stat.isSymbolicLink()) {
-        await backupDirRecursive(agentDirAbs, backupDir, agentDir);
-        await fs.rm(agentDirAbs, { recursive: true, force: true });
-      }
-    }
-
-    if (target === "opencode") {
-      const opPath = path.join(root, "opencode.json");
-      try {
-        const content = await fs.readFile(opPath, "utf-8");
-        await fs.mkdir(backupDir, { recursive: true });
-        await fs.writeFile(path.join(backupDir, "opencode.json"), content);
-      } catch { /* file doesn't exist */ }
-      try { await fs.unlink(opPath); } catch {}
-    }
-  }
 }
 
 export default defineCommand({
@@ -128,8 +79,8 @@ export default defineCommand({
     const s = spinner();
     s.start("Updating targets...");
 
-    if (removed.length > 0) {
-      await cleanupRemovedTargets(root, removed);
+    for (const target of removed) {
+      await cleanupAgentDir(root, target);
     }
 
     config.targets = makeTargets(...selected);

@@ -176,6 +176,52 @@ export async function migrateRuleAndSkillFiles(root: string): Promise<void> {
   }
 }
 
+async function backupDirRecursive(srcDir: string, backupDir: string, prefix: string): Promise<void> {
+  let entries: import("fs").Dirent[];
+  try { entries = await fs.readdir(srcDir, { withFileTypes: true }); } catch { return; }
+  for (const entry of entries) {
+    const srcPath = path.join(srcDir, entry.name);
+    const lstat = await fs.lstat(srcPath);
+    if (lstat.isSymbolicLink()) continue;
+    if (lstat.isDirectory()) {
+      await backupDirRecursive(srcPath, backupDir, `${prefix}_${entry.name}`);
+    } else if (lstat.isFile()) {
+      await fs.mkdir(backupDir, { recursive: true });
+      await fs.copyFile(srcPath, path.join(backupDir, `${prefix}_${entry.name}`));
+    }
+  }
+}
+
+export async function cleanupAgentDir(root: string, target: import("./types.ts").AgentTarget): Promise<void> {
+  const def = AGENT_DEFINITIONS.find((d) => d.target === target)!;
+  const backupDir = path.join(root, ONEAGENT_DIR, "backup");
+
+  const agentDir = [def.rulesDir, def.skillsDir, def.commandsDir]
+    .filter(Boolean)
+    .map((d) => d!.split("/")[0]!)
+    .find((d) => d !== ".github");
+
+  if (agentDir) {
+    const agentDirAbs = path.join(root, agentDir);
+    let stat;
+    try { stat = await fs.lstat(agentDirAbs); } catch {}
+    if (stat && stat.isDirectory() && !stat.isSymbolicLink()) {
+      await backupDirRecursive(agentDirAbs, backupDir, agentDir);
+      await fs.rm(agentDirAbs, { recursive: true, force: true });
+    }
+  }
+
+  if (target === "opencode") {
+    const opPath = path.join(root, "opencode.json");
+    try {
+      const content = await fs.readFile(opPath, "utf-8");
+      await fs.mkdir(backupDir, { recursive: true });
+      await fs.writeFile(path.join(backupDir, "opencode.json"), content);
+    } catch {}
+    try { await fs.unlink(opPath); } catch {}
+  }
+}
+
 export async function createAllSymlinks(entries: SymlinkEntry[]): Promise<void> {
   // Deduplicate by symlink path — last entry wins
   const deduped = new Map<string, SymlinkEntry>();

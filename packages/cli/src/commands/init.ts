@@ -22,6 +22,7 @@ import {
   filesHaveSameContent,
   generate,
   migrateRuleAndSkillFiles,
+  cleanupAgentDir,
   removeDeprecatedFiles,
   applyTemplateFiles,
   installTemplateSkills,
@@ -126,63 +127,14 @@ async function backupFiles(root: string, files: DetectedFile[]): Promise<void> {
   }
 }
 
-async function backupDirRecursive(srcDir: string, backupDir: string, prefix: string, root: string): Promise<void> {
-  let entries: import("fs").Dirent[];
-  try { entries = await fs.readdir(srcDir, { withFileTypes: true }); } catch { return; }
-  for (const entry of entries) {
-    const srcPath = path.join(srcDir, entry.name);
-    const lstat = await fs.lstat(srcPath);
-    if (lstat.isSymbolicLink()) continue;
-    if (lstat.isDirectory()) {
-      await backupDirRecursive(srcPath, backupDir, `${prefix}_${entry.name}`, root);
-    } else if (lstat.isFile()) {
-      await fs.mkdir(backupDir, { recursive: true });
-      const safeName = `${prefix}_${entry.name}`;
-      await fs.copyFile(srcPath, path.join(backupDir, safeName));
-    }
-  }
-}
-
 async function cleanupUnselectedAgentDirs(
   root: string,
   presentTargets: AgentTarget[],
   selectedTargets: AgentTarget[],
 ): Promise<void> {
   const unselected = presentTargets.filter((t) => !selectedTargets.includes(t));
-  if (unselected.length === 0) return;
-
-  const backupDir = path.join(root, ONEAGENT_DIR, "backup");
-
   for (const target of unselected) {
-    const def = AGENT_DEFINITIONS.find((d) => d.target === target)!;
-
-    // Derive agent root dir from first segment of any dir field, skip .github
-    const agentDir = [def.rulesDir, def.skillsDir, def.commandsDir]
-      .filter(Boolean)
-      .map((d) => d!.split("/")[0]!)
-      .find((d) => d !== ".github");
-
-    if (agentDir) {
-      const agentDirAbs = path.join(root, agentDir);
-      let stat;
-      try { stat = await fs.lstat(agentDirAbs); } catch { /* doesn't exist */ }
-      if (stat && stat.isDirectory() && !stat.isSymbolicLink()) {
-        // Recursively backup all non-symlink files before removing
-        await backupDirRecursive(agentDirAbs, backupDir, agentDir, root);
-        await fs.rm(agentDirAbs, { recursive: true, force: true });
-      }
-    }
-
-    // opencode also writes a standalone config file — backup before removing
-    if (target === "opencode") {
-      const opPath = path.join(root, "opencode.json");
-      try {
-        const content = await fs.readFile(opPath, "utf-8");
-        await fs.mkdir(backupDir, { recursive: true });
-        await fs.writeFile(path.join(backupDir, "opencode.json"), content);
-      } catch { /* file doesn't exist */ }
-      try { await fs.unlink(opPath); } catch {}
-    }
+    await cleanupAgentDir(root, target);
   }
 }
 
