@@ -9,7 +9,14 @@ export default defineCommand({
     name: "generate",
     description: "Generate symlinks and agent-specific files",
   },
-  async run() {
+  args: {
+    yes: {
+      type: "boolean",
+      alias: "y",
+      description: "Skip confirmation prompts and auto-migrate colliding files",
+    },
+  },
+  async run({ args }) {
     const root = process.cwd();
 
     let config;
@@ -34,18 +41,22 @@ export default defineCommand({
 
     // Prompt only for rule/skill files
     if (ruleSkillFiles.length > 0) {
-      note(
-        ruleSkillFiles.map((f) => `  • ${f.relativePath}`).join("\n"),
-        "These rule/skill files are not dotai symlinks",
-      );
-      const proceed = await confirm({
-        message: `Move them to ${ONEAGENT_DIR}/ and replace with symlinks?`,
-      });
-      if (isCancel(proceed) || !proceed) {
-        outro("Aborted.");
-        process.exit(0);
+      if (args.yes) {
+        await migrateRuleAndSkillFiles(root);
+      } else {
+        note(
+          ruleSkillFiles.map((f) => `  • ${f.relativePath}`).join("\n"),
+          "These rule/skill files are not oneagent symlinks",
+        );
+        const proceed = await confirm({
+          message: `Move them to ${ONEAGENT_DIR}/ and replace with symlinks?`,
+        });
+        if (isCancel(proceed) || !proceed) {
+          outro("Aborted.");
+          process.exit(0);
+        }
+        await migrateRuleAndSkillFiles(root);
       }
-      await migrateRuleAndSkillFiles(root);
     }
 
     const s = spinner();
