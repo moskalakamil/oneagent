@@ -54,19 +54,13 @@ async function chooseContent(detected: DetectedFile[]): Promise<string> {
 
   if (detected.length === 1) {
     const file = detected[0]!;
-    const result = await confirm({
-      message: `Found ${file.relativePath} (${timeAgo(file.modifiedAt)}). Import its content into ${ONEAGENT_DIR}/instructions.md?`,
-    });
-    if (isCancel(result)) cancelAndExit();
-    return result ? file.content : "";
+    log.info(`Found ${file.relativePath} (${timeAgo(file.modifiedAt)}) — importing into ${ONEAGENT_DIR}/instructions.md`);
+    return file.content;
   }
 
   if (filesHaveSameContent(detected)) {
-    const result = await confirm({
-      message: `Found ${detected.length} files with identical content. Import?`,
-    });
-    if (isCancel(result)) cancelAndExit();
-    return result ? detected[0]!.content : "";
+    log.info(`Found ${detected.length} files with identical content — importing into ${ONEAGENT_DIR}/instructions.md`);
+    return detected[0]!.content;
   }
 
   // Scenario D — multiple files, different content
