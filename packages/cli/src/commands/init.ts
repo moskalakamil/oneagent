@@ -276,19 +276,15 @@ export default defineCommand({
     // Warn if commands exist: skills are broader and more powerful
     const commandFiles = await fs.readdir(path.join(root, ONEAGENT_DIR, "commands")).catch(() => []);
     if (commandFiles.some((f) => f.endsWith(".md"))) {
+      const commandsDirs = selectedTargets
+        .map((t) => AGENT_DEFINITIONS.find((d) => d.target === t))
+        .filter((d) => d?.commandsDir)
+        .map((d) => d!.commandsDir!);
+      const dirsStr = commandsDirs.join(", ");
       log.warn(
-        `Commands detected in ${ONEAGENT_DIR}/commands/. Consider migrating to ${ONEAGENT_DIR}/skills/ — skills are distributed to more agents and support richer features.`,
+        `Commands detected in ${dirsStr}. Consider migrating to ${ONEAGENT_DIR}/skills/ — skills are distributed to more agents and support richer features.`,
       );
-    }
 
-    // Warn if selected targets don't support commands (when commands exist)
-    if (commandFiles.some((f) => f.endsWith(".md"))) {
-      const commandsSupported = new Set(AGENT_DEFINITIONS.filter((d) => d.commandsDir).map((d) => d.target));
-      const unsupported = selectedTargets.filter((t) => !commandsSupported.has(t));
-      if (unsupported.length > 0) {
-        const names = unsupported.map((t) => AGENT_DEFINITIONS.find((d) => d.target === t)!.displayName).join(", ");
-        log.warn(`Commands in ${ONEAGENT_DIR}/commands/ will not be available in: ${names} — these agents do not support custom slash commands.`);
-      }
     }
 
     const s2 = spinner();

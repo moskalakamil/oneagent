@@ -1,6 +1,6 @@
 {
   "name": "@moskala/oneagent-core",
-  "version": "0.3.1",
+  "version": "0.4.5",
   "type": "module",
   "description": "Core library for oneagent — one source of truth for AI agent rules",
   "license": "MIT",
@@ -8,16 +8,17 @@
     "type": "git",
     "url": "https://github.com/moskalakamil/oneagent"
   },
-  "module": "./src/index.ts",
-  "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "files": [
-    "src",
-    "!src/__tests__"
+    "dist"
   ],
   "scripts": {
+    "build": "bun ./scripts/build.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

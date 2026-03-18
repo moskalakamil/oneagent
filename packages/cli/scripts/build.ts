@@ -9,6 +9,7 @@ await Bun.build({
   outdir: join(DIR, "dist"),
   target: "node",
   naming: "index.js",
+  external: ["@moskala/oneagent-core", "@moskala/oneagent-templates"],
 });
 
 // Strip any existing shebang from bundle, then prepend the correct one

@@ -1,6 +1,6 @@
 {
   "name": "oneagent",
-  "version": "0.3.1",
+  "version": "0.4.5",
   "type": "module",
   "description": "One source of truth for AI agent rules — distributed via symlinks to Claude, Cursor, Windsurf, Copilot, OpenCode",
   "license": "MIT",
@@ -9,14 +9,10 @@
     "url": "https://github.com/moskalakamil/oneagent"
   },
   "bin": {
-    "oneagent": "./src/index.ts"
-  },
-  "module": "./src/index.ts",
-  "exports": {
-    ".": "./src/index.ts"
+    "oneagent": "./dist/index.js"
   },
   "files": [
-    "src"
+    "dist"
   ],
   "scripts": {
     "build": "bun ./scripts/build.ts",
