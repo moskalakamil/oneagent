@@ -4,6 +4,32 @@ skills:
   - repo: https://github.com/vercel-labs/skills
     skill: find-skills
   - repo: https://github.com/obra/superpowers
+    skill: brainstorming
+  - repo: https://github.com/obra/superpowers
+    skill: dispatching-parallel-agents
+  - repo: https://github.com/obra/superpowers
+    skill: executing-plans
+  - repo: https://github.com/obra/superpowers
+    skill: finishing-a-development-branch
+  - repo: https://github.com/obra/superpowers
+    skill: receiving-code-review
+  - repo: https://github.com/obra/superpowers
+    skill: requesting-code-review
+  - repo: https://github.com/obra/superpowers
+    skill: subagent-driven-development
+  - repo: https://github.com/obra/superpowers
+    skill: systematic-debugging
+  - repo: https://github.com/obra/superpowers
+    skill: test-driven-development
+  - repo: https://github.com/obra/superpowers
+    skill: using-git-worktrees
+  - repo: https://github.com/obra/superpowers
+    skill: using-superpowers
+  - repo: https://github.com/obra/superpowers
+    skill: verification-before-completion
+  - repo: https://github.com/obra/superpowers
+    skill: writing-plans
+  - repo: https://github.com/obra/superpowers
     skill: writing-skills
   - repo: https://github.com/github/awesome-copilot
     skill: conventional-commit
