@@ -44,14 +44,7 @@ export interface SymlinkCheck extends SymlinkEntry {
 
 export interface StatusResult {
   symlinks: SymlinkCheck[];
-  generatedFiles: GeneratedFileCheck[];
   opencode: OpenCodeCheck;
-}
-
-export interface GeneratedFileCheck {
-  path: string;
-  exists: boolean;
-  upToDate: boolean;
 }
 
 export interface OpenCodeCheck {

@@ -1,10 +1,9 @@
 import { test, expect, describe } from "bun:test";
-import { mkdtemp, mkdir, lstat, writeFile, symlink } from "fs/promises";
+import { mkdtemp, mkdir, lstat, writeFile, readlink } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { generate, detectGenerateCollisions } from "../generate.ts";
 import { makeTargets } from "../config.ts";
-import { copilotFilePath } from "../copilot.ts";
 import type { Config } from "../types.ts";
 
 async function mkTempDir(): Promise<string> {
@@ -55,7 +54,7 @@ describe("detectGenerateCollisions", () => {
     expect(ruleSkillFiles.some((f) => f.relativePath === ".cursor/rules")).toBe(false);
   });
 
-  test("detects copilot rule file with different content in ruleSkillFiles", async () => {
+  test("detects copilot rule file that is a real file (not symlink) in ruleSkillFiles", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
     await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
@@ -65,11 +64,10 @@ describe("detectGenerateCollisions", () => {
     expect(ruleSkillFiles.some((f) => f.relativePath === ".github/instructions/style.instructions.md")).toBe(true);
   });
 
-  test("does NOT detect copilot rule file with matching content (idempotent)", async () => {
+  test("does NOT detect copilot rule symlink pointing to .oneagent/ (idempotent)", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
     await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
-    // Generate so the copilot file has the correct content
     await generate(dir, makeConfig("copilot"));
     const { ruleSkillFiles } = await detectGenerateCollisions(dir, makeConfig("copilot"));
     expect(ruleSkillFiles.some((f) => f.relativePath === ".github/instructions/style.instructions.md")).toBe(false);
@@ -108,15 +106,17 @@ describe("generate", () => {
     expect(await Bun.file(join(dir, "opencode.json")).exists()).toBe(true);
   });
 
-  test("generates copilot instruction files for copilot target", async () => {
+  test("creates copilot rule symlinks for copilot target", async () => {
     const dir = await mkTempDir();
     await mkdir(join(dir, ".oneagent/rules"), { recursive: true });
     await Bun.write(join(dir, ".oneagent/instructions.md"), "# Instructions");
     await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
     await generate(dir, makeConfig("copilot"));
-    expect(
-      await Bun.file(join(dir, ".github/instructions/style.instructions.md")).exists(),
-    ).toBe(true);
+    const dest = join(dir, ".github/instructions/style.instructions.md");
+    const stat = await lstat(dest);
+    expect(stat.isSymbolicLink()).toBe(true);
+    const target = await readlink(dest);
+    expect(target).toBe("../../.oneagent/rules/style.md");
   });
 
   test("creates .claude/rules directory symlink pointing to .oneagent/rules", async () => {

@@ -303,12 +303,6 @@ function parseGitHubUrl(url: string): GitHubUrlParts {
   return { owner: owner!, repo: repo!, branch, subdir };
 }
 
-function githubUrlToRawBase(url: string): string {
-  const { owner, repo, branch, subdir } = parseGitHubUrl(url);
-  const base = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}`;
-  return subdir ? `${base}/${subdir}` : base;
-}
-
 async function fetchGitHubRules(repoUrl: string): Promise<Array<{ name: string; content: string }>> {
   const { owner, repo, branch, subdir } = parseGitHubUrl(repoUrl);
   const rulesPath = subdir ? `${subdir}/rules` : "rules";

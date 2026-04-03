@@ -26,15 +26,6 @@ export default defineCommand({
       console.log(`  ${icon} ${s.label} — ${text}`);
     }
 
-    if (status.generatedFiles.length > 0) {
-      console.log("\nGenerated files (Copilot):");
-      for (const f of status.generatedFiles) {
-        const icon = !f.exists ? "✗" : f.upToDate ? "✓" : "⚠";
-        const text = !f.exists ? "missing" : f.upToDate ? "up to date" : "outdated";
-        console.log(`  ${icon} ${f.path} — ${text}`);
-      }
-    }
-
     if (activeTargets(config).includes("opencode")) {
       const { opencode } = status;
       const icon = !opencode.exists ? "✗" : opencode.valid ? "✓" : "⚠";

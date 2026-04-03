@@ -56,11 +56,16 @@ describe("checkStatus", () => {
     expect(status.opencode.exists).toBe(false);
   });
 
-  test("generatedFiles empty when copilot not in targets", async () => {
+  test("includes copilot per-file rule symlinks when copilot target is active", async () => {
     const dir = await mkTempDir();
     await setupProject(dir);
-    const config = makeConfig("claude");
+    const { writeFile } = await import("fs/promises");
+    await writeFile(join(dir, ".oneagent/rules/style.md"), "# Style");
+    const config = makeConfig("copilot");
+    await generate(dir, config);
     const status = await checkStatus(dir, config);
-    expect(status.generatedFiles).toEqual([]);
+    const copilotRule = status.symlinks.find((s) => s.label === ".github/instructions/style.instructions.md");
+    expect(copilotRule).toBeDefined();
+    expect(copilotRule!.valid).toBe(true);
   });
 });
