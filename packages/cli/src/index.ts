@@ -1,9 +1,11 @@
 #!/usr/bin/env bun
 import { defineCommand, runMain } from "citty";
+import { version } from "../package.json";
 
 const main = defineCommand({
   meta: {
     name: "oneagent",
+    version,
     description: "One source of truth for AI agent rules",
   },
   subCommands: {
