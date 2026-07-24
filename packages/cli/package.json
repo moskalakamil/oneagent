@@ -1,6 +1,6 @@
 {
   "name": "oneagent",
-  "version": "0.4.7",
+  "version": "0.5.0",
   "type": "module",
   "description": "One source of truth for AI agent rules — distributed via symlinks to Claude, Cursor, Windsurf, Copilot, OpenCode",
   "license": "MIT",
