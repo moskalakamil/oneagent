@@ -1,4 +1,4 @@
-export type AgentTarget = "claude" | "cursor" | "windsurf" | "opencode" | "copilot";
+export type AgentTarget = "claude" | "cursor" | "windsurf" | "opencode" | "codex" | "copilot";
 
 export interface Config {
   version: 1;

@@ -6,7 +6,7 @@ import { ONEAGENT_DIR } from "./constants.ts";
 
 const CONFIG_REL = `${ONEAGENT_DIR}/config.yml`;
 
-export const ALL_AGENT_TARGETS: AgentTarget[] = ["claude", "cursor", "windsurf", "opencode", "copilot"];
+export const ALL_AGENT_TARGETS: AgentTarget[] = ["claude", "cursor", "windsurf", "opencode", "codex", "copilot"];
 
 export function activeTargets(config: Config): AgentTarget[] {
   return ALL_AGENT_TARGETS.filter((t) => config.targets[t]);
