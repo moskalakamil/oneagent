@@ -61,6 +61,16 @@ export const AGENT_DEFINITIONS: AgentDefinition[] = [
     commandsDir: ".opencode/commands",
   },
   {
+    target: "codex",
+    displayName: "Codex",
+    hint: "AGENTS.md + skills via .agents/skills",
+    detectIndicators: [".codex"],
+    mainFile: "AGENTS.md",
+    // no rulesDir    — Codex has no rules directory (only the AGENTS.md hierarchy)
+    // no skillsDir   — skills already flow via the unconditional .agents/skills symlink
+    // no commandsDir — Codex prompts are global-only (~/.codex/prompts) and deprecated
+  },
+  {
     target: "copilot",
     displayName: "GitHub Copilot",
     hint: ".github/instructions/*.instructions.md",
